@@ -1,0 +1,36 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+@theme {
+  --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+  
+  --color-primary-500: #a855f7;
+  --color-primary-600: #9333ea;
+  --color-accent-400: #f472b6;
+  --color-accent-500: #ec4899;
+
+  --color-glass-base: rgba(15, 23, 42, 0.4);
+  --color-glass-border: rgba(255, 255, 255, 0.08);
+}
+
+@layer base {
+  body {
+    @apply bg-slate-950 text-slate-200 antialiased min-h-screen selection:bg-primary-500 selection:text-white;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+@layer utilities {
+  .glassmorphism {
+    @apply bg-slate-900/40 backdrop-blur-xl border border-white/10 shadow-2xl;
+  }
+  .input-glass {
+    @apply bg-slate-900/50 border border-slate-700/50 backdrop-blur-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-all duration-300;
+  }
+}
+
+/* Custom animated gradient background */
+.bg-gradient-radial-web3 {
+  background: radial-gradient(circle at 10% 20%, rgba(147, 51, 234, 0.15) 0%, transparent 40%),
+              radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.15) 0%, transparent 40%);
+}
