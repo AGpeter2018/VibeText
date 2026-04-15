@@ -1,13 +1,13 @@
 import express from 'express'
 import cors from 'cors'
-import aiRouter from './routes/ai-route.js';
-import { generateContent } from './controller/ai-controller.js';
+import { generateContent } from '../controller/ai-controller.js'
 
 const app = express()
 // Middleware
 
 // CORS configuration
 const allowedOrigins = [
+    'http://localhost:5173',
     'http://127.0.0.1:5173',
     process.env.CLIENT_URL
 ].filter(Boolean);
@@ -38,8 +38,7 @@ app.get('/', (req, res) => {
     res.status(200).json({ message: 'VibeText API is running...' });
 });
 
-// Routes
-app.use('/api', aiRouter);
-// app.post('/api/tune-direct', generateContent);
+// Route
+app.post('/api/tune', generateContent);
 
 export default app
