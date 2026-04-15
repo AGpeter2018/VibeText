@@ -7,9 +7,10 @@ import app from './app.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables from project root
-const envPath = path.resolve(__dirname, '../../.env');
-dotenv.config({ path: envPath });
+// Load environment variables
+dotenv.config(); // Try loading from current working directory (.env in root)
+const envPath = path.resolve(__dirname, '../.env');
+dotenv.config({ path: envPath }); // Keep fallback for existing structure
 
 
 
