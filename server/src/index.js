@@ -1,4 +1,3 @@
-// VibeText Server Entry Point
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -18,6 +17,7 @@ dotenv.config({ path: envPath }); // Keep fallback for existing structure
 const startServer = async () => {
     try {
 
+        // Give mongoose a moment to fully initialize
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         const PORT = process.env.PORT || 5000;

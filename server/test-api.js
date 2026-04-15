@@ -2,22 +2,21 @@ import axios from 'axios';
 
 const testAI = async () => {
     console.log('Starting API Test...');
-    
     try {
         const payload = {
             text: "Hello, how are you? I'm headed to the market to get some fish.",
             dialect: "Nigeria english",
             intensity: "high"
         };
-        
-        console.log('ending request to http://localhost:5000/api/tune-direct...');
+
+        console.log('ending request to http://localhost:5000/api/tune...');
         console.log('Payload:', JSON.stringify(payload, null, 2));
 
-        const response = await axios.post('http://localhost:5000/api/tune-direct', payload);
-        
+        const response = await axios.post('http://localhost:5000/api/tune', payload);
+
         console.log('\n Success!');
         console.log(' Tuned Text:', response.data.content);
-        
+
     } catch (error) {
         console.error('\n Test Failed');
         if (error.response) {
