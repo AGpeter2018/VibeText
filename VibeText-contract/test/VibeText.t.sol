@@ -48,7 +48,7 @@ contract VibeTextTest is Test {
         vm.prank(user);
         vm.expectEmit(true, false, false, true);
         emit TuneRequested(user, "hello", "FR");
-        vibeText.requestTune("hello", "FR");
+        vibeText.requestTune{value: 0.5 ether}("hello", "FR");
     }
 
     function test_requestTuneWithPrice() public {
