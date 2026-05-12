@@ -1,11 +1,16 @@
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Sparkle, ArrowRight } from 'lucide-react';
 
-interface HeroProps {
-  onLaunch: () => void;
-}
+// interface HeroProps {
+//   onLaunch: () => void;
+// }
 
-export function Hero({ onLaunch }: HeroProps) {
+export function Hero() {
+    const navigate = useNavigate();
+      const handleLaunch = () => {
+        navigate('/app');
+    }
 
   return (
     <section className="relative pt-32 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center justify-center min-h-[85vh]">
@@ -33,7 +38,7 @@ export function Hero({ onLaunch }: HeroProps) {
 
         <div className="flex flex-col sm:flex-row gap-4 mt-4 w-full justify-center">
           <button 
-            onClick={onLaunch}
+            onClick={handleLaunch}
             className="group relative flex justify-center items-center gap-2 py-4 px-10 text-lg font-semibold rounded-2xl text-white bg-primary-600 hover:bg-primary-500 shadow-[0_0_40px_rgba(168,85,247,0.4)] hover:shadow-[0_0_60px_rgba(168,85,247,0.6)] transition-all duration-300"
           >
             Launch app
