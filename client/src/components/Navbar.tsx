@@ -1,52 +1,54 @@
 import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/react';
 import { Wallet, Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-
-
-// interface NavbarProps {
-//   onLaunch?: () => void;
-//   isAppView?: boolean;
-// }
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export function Navbar() {
-  const navigate = useNavigate()
-  const [isWaiting, setIswaiting] = useState(false)
-  const [isDisconnecting, setIsDisconnecting] = useState(false)
-  const { open } = useAppKit()
-  const { address, isConnected, status } = useAppKitAccount()
-  const { disconnect } = useDisconnect()
-
-  const handleLaunch = () => {
-    navigate('/app');
-  }
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [isWaiting, setIswaiting] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
+  
+  const { open } = useAppKit();
+  const { address, isConnected, status } = useAppKitAccount();
+  const { disconnect } = useDisconnect();
 
   const handleConnect = () => {
     if (isConnected) {
-      setIsDisconnecting(true)
+      setIsDisconnecting(true);
       setTimeout(async () => {
-        await disconnect()
-        setIsDisconnecting(false)
+        await disconnect();
+        setIsDisconnecting(false);
       }, 1500);
-
     } else {
-      setIswaiting(true)
+      setIswaiting(true);
       setTimeout(() => {
-        open()
-        setIswaiting(false)
-      }, 1500)
+        open();
+        setIswaiting(false);
+      }, 1500);
     }
   };
-
-
+  
+  const handleLaunch = () => {
+    if (!isConnected) {
+      return;
+    } else {
+      navigate('/app');
+    }  
+  };
+  
   const showSpinner = isWaiting || status === 'connecting' || status === 'reconnecting';
+  const isAppView = location.pathname === '/app';
 
   return (
     <nav className="fixed top-0 w-full z-50 glassmorphism border-b-white/5 border-b-[1px]">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between pointer-events-auto">
 
         {/* Logo */}
-        <div className="flex items-center gap-2 cursor-pointer transition-transform hover:scale-105 active:scale-95">
+        <div 
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 cursor-pointer transition-transform hover:scale-105 active:scale-95"
+        >
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary-600 to-accent-500 p-[1px]">
             <div className="w-full h-full bg-slate-950 rounded-xl flex items-center justify-center">
               <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-400 to-accent-400">
@@ -55,21 +57,23 @@ export function Navbar() {
             </div>
           </div>
 
-          <span className="text-xl tracking-tight font-semibold text-white">
-            VibeText
-          </span>
-
+          {!isAppView && (
+            <span className="text-xl tracking-tight font-semibold text-white">
+              VibeText
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-6">
           {/* Launch App Button for Landing Page */}
-
-          <button
-            onClick={handleLaunch}
-            className="hidden sm:block text-slate-300 hover:text-white font-medium transition-colors"
-          >
-            Launch App
-          </button>
+          {!isAppView && (
+            <button
+              onClick={handleLaunch}
+              className="hidden sm:block text-slate-300 hover:text-white font-medium transition-colors"
+            >
+              Launch App
+            </button>
+          )}
 
           {/* Connect Button (Mock) */}
           <button

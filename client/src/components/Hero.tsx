@@ -1,16 +1,20 @@
+import { useAppKitAccount } from '@reown/appkit/react';
+
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Sparkle, ArrowRight } from 'lucide-react';
 
-// interface HeroProps {
-//   onLaunch: () => void;
-// }
 
 export function Hero() {
-    const navigate = useNavigate();
-      const handleLaunch = () => {
-        navigate('/app');
-    }
+  const navigate = useNavigate();
+  const { isConnected } = useAppKitAccount();
+  const handleLaunch = () => {
+    if (!isConnected) {
+      return;
+    } else {
+      navigate('/app');
+    }  
+  };
 
   return (
     <section className="relative pt-32 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center justify-center min-h-[85vh]">
