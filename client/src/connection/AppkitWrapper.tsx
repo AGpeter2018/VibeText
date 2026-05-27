@@ -30,6 +30,7 @@ createAppKit({
     socials: ["google", "x", "github"],
     emailShowWallets: true
   },
+   allWallets: 'SHOW'
 });
 
 export default function AppKitWrapper({ children}: {children: ReactNode})  {
