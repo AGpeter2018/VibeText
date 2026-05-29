@@ -1,10 +1,48 @@
-import { Activity, Settings, Banknote, ShieldAlert, Sparkles, LayoutDashboard } from 'lucide-react';
-import { useState } from 'react';
+import { Activity, Settings, Banknote, ShieldAlert } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import useReadPrice from '../hooks/Read-hooks/useReadPrice';
+import toast from 'react-hot-toast';
+import { useAppKitAccount } from '@reown/appkit/react';
 
 export function AdminPanel() {
   const [isPaused, setIsPaused] = useState(false);
-  const [price, setPrice] = useState('0.01');
   const [balance] = useState('4.25');
+  const { isConnected } = useAppKitAccount();
+  
+  const { price, loading: priceLoading } = useReadPrice();
+  
+  const [inputPrice, setInputPrice] = useState<number>();
+  const [loading, setLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (price && price !== "0") {
+      setInputPrice(Number(price));
+    }
+  }, [price]);
+
+  const handleUpdatedPrice = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!isConnected) {
+      toast.error('Connect your wallet first');
+      return;
+    }
+
+    if (!inputPrice) {
+      toast.error('Price is not defined');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      toast.success('Price update transaction simulated!');
+      console.log('this is price:',inputPrice)
+    } catch (error) {
+      toast.error('Failed to update price');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="w-full max-w-4xl flex flex-col gap-8 p-6">
@@ -39,7 +77,7 @@ export function AdminPanel() {
             Contract Status
           </div>
           <div className="flex items-center gap-4">
-            <span className={`px-4 py-1.5 rounded-full text-sm font-semibold \${!isPaused ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+            <span className={`px-4 py-1.5 rounded-full text-sm font-semibold ${!isPaused ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
               {!isPaused ? 'Active & Live' : 'Paused'}
             </span>
           </div>
@@ -56,16 +94,27 @@ export function AdminPanel() {
           </div>
           
           <div className="flex gap-4">
-            <div className="relative flex-1">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">ETH</span>
-              <input 
-                type="number" 
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                className="input-glass w-full rounded-xl p-3 pl-14 text-slate-100" 
-              />
-            </div>
-            <button className="px-8 py-3 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-medium shadow-lg shadow-primary-500/20 transition-colors">
+            {priceLoading || loading ? (
+              <div className='flex justify-center items-center py-4 flex-1'>
+                <div className='animate-spin rounded-full h-8 w-8 border-4 border-slate-700 border-t-indigo-500'></div>
+                <span className='ml-3 text-slate-400 font-medium'>Processing...</span>
+              </div>
+            ) : (
+              <div className="relative flex-1">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">ETH</span>
+                <input 
+                  type="number" 
+                  value={inputPrice}
+                  onChange={(e) => setInputPrice(Number(e.target.value))}
+                  className="input-glass w-full rounded-xl p-3 pl-14 text-slate-100" 
+                />
+              </div>
+            )}
+            
+            <button 
+              className="px-8 py-3 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-medium shadow-lg shadow-primary-500/20 transition-colors" 
+              onSubmit={handleUpdatedPrice}
+            >
               Update Price
             </button>
           </div>
