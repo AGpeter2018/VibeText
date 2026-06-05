@@ -1,24 +1,35 @@
 import { Activity, Settings, Banknote, ShieldAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import useReadPrice from '../hooks/Read-hooks/useReadPrice';
+import useReadBalance from '../hooks/Read-hooks/useReadBalance';
 import toast from 'react-hot-toast';
 import { useAppKitAccount } from '@reown/appkit/react';
 
 export function AdminPanel() {
   const [isPaused, setIsPaused] = useState(false);
-  const [balance] = useState('4.25');
+  // const [balance] = useState('4.25');
   const { isConnected } = useAppKitAccount();
   
   const { price, loading: priceLoading } = useReadPrice();
+  const { balance } = useReadBalance()
   
-  const [inputPrice, setInputPrice] = useState<number>();
+  const [inputPrice, setInputPrice] = useState<string>("0");
+  const [inputBalance, setInputBalance] = useState<string>("0")
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
     if (price && price !== "0") {
-      setInputPrice(Number(price));
+      setInputPrice(price);
+    } else {
+      setInputPrice("0")
     }
-  }, [price]);
+
+    if (balance && balance !== "0") {
+      setInputBalance(balance);
+    } else {
+      setInputBalance("0")
+    }
+  }, [price, balance]);
 
   const handleUpdatedPrice = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -32,12 +43,20 @@ export function AdminPanel() {
       return;
     }
 
+    if (!inputBalance) {
+      toast.error('Balance is not defined');
+      return;
+    }
+
     try {
       setLoading(true);
       toast.success('Price update transaction simulated!');
+      toast.success('Balance update transaction simulated!');
       console.log('this is price:',inputPrice)
+      console.log('this is price:',inputBalance)
     } catch (error) {
       toast.error('Failed to update price');
+      toast.error('Failed to update Balance');
       console.error(error);
     } finally {
       setLoading(false);
@@ -64,7 +83,14 @@ export function AdminPanel() {
             <div className="p-2 rounded-xl bg-white/5"><Banknote size={20} className="text-green-400" /></div>
             Treasury Balance
           </div>
-          <div className="text-4xl font-bold text-white">{balance} ETH</div>
+          {loading || priceLoading ? (
+             <div className='flex justify-center items-center py-4 flex-1'>
+                <div className='animate-spin rounded-full h-8 w-8 border-4 border-slate-700 border-t-indigo-500'></div>
+                <span className='ml-3 text-slate-400 font-medium'>Processing...</span>
+              </div>
+          ) : (
+            <div className="text-4xl font-bold text-white">{balance} ETH</div>
+          )}
           <button className="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-medium transition-colors border border-white/10">
             Withdraw Funds
           </button>
@@ -103,9 +129,9 @@ export function AdminPanel() {
               <div className="relative flex-1">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">ETH</span>
                 <input 
-                  type="number" 
+                  type="text" 
                   value={inputPrice}
-                  onChange={(e) => setInputPrice(Number(e.target.value))}
+                  onChange={(e) => setInputPrice(e.target.value)}
                   className="input-glass w-full rounded-xl p-3 pl-14 text-slate-100" 
                 />
               </div>
