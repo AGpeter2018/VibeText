@@ -2,19 +2,22 @@ import { Activity, Settings, Banknote, ShieldAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import useReadPrice from '../hooks/Read-hooks/useReadPrice';
 import useReadBalance from '../hooks/Read-hooks/useReadBalance';
+import useReadPause from '../hooks/Read-hooks/useReadPause';
 import toast from 'react-hot-toast';
 import { useAppKitAccount } from '@reown/appkit/react';
 
 export function AdminPanel() {
-  const [isPaused, setIsPaused] = useState(false);
+  // const [isPaused, setIsPaused] = useState(false);
   // const [balance] = useState('4.25');
   const { isConnected } = useAppKitAccount();
   
   const { price, loading: priceLoading } = useReadPrice();
   const { balance } = useReadBalance()
+  const { isPause } = useReadPause()
   
   const [inputPrice, setInputPrice] = useState<string>("0");
   const [inputBalance, setInputBalance] = useState<string>("0")
+  const [ paused, setPaused] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
@@ -29,7 +32,16 @@ export function AdminPanel() {
     } else {
       setInputBalance("0")
     }
-  }, [price, balance]);
+
+    if (isPause === true) {
+      setPaused(true)
+      toast.success("Protocol is paused")
+      console.log("this is paused")
+    }else {
+      setPaused(false)
+      toast.success("this is live")
+    }
+  }, [price, balance, isPause]);
 
   const handleUpdatedPrice = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -103,12 +115,12 @@ export function AdminPanel() {
             Contract Status
           </div>
           <div className="flex items-center gap-4">
-            <span className={`px-4 py-1.5 rounded-full text-sm font-semibold ${!isPaused ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-              {!isPaused ? 'Active & Live' : 'Paused'}
+            <span className={`px-4 py-1.5 rounded-full text-sm font-semibold ${!paused ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+              {!paused ? 'Active & Live' : 'Paused'}
             </span>
           </div>
-          <button onClick={() => setIsPaused(!isPaused)} className="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-medium transition-colors border border-white/10">
-            {isPaused ? 'Unpause Contract' : 'Pause Contract'}
+          <button onClick={() => setPaused(!paused)} className="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-medium transition-colors border border-white/10">
+            {paused ? 'Unpause Contract' : 'Pause Contract'}
           </button>
         </div>
 
