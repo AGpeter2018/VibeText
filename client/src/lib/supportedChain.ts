@@ -1,0 +1,1 @@
+export const supportedChain = 4202
