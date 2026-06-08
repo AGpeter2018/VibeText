@@ -3,17 +3,17 @@ import { useEffect, useState } from 'react';
 import useReadPrice from '../hooks/Read-hooks/useReadPrice';
 import useReadBalance from '../hooks/Read-hooks/useReadBalance';
 import useReadPause from '../hooks/Read-hooks/useReadPause';
+import useChangePrice from '../hooks/Write-hooks/useWriteChangePrice';
 import toast from 'react-hot-toast';
 import { useAppKitAccount } from '@reown/appkit/react';
 
 export function AdminPanel() {
-  // const [isPaused, setIsPaused] = useState(false);
-  // const [balance] = useState('4.25');
   const { isConnected } = useAppKitAccount();
   
   const { price, loading: priceLoading } = useReadPrice();
   const { balance } = useReadBalance()
   const { isPause } = useReadPause()
+  const { writeChangePrice } = useChangePrice()
   
   const [inputPrice, setInputPrice] = useState<string>("0");
   const [inputBalance, setInputBalance] = useState<string>("0")
@@ -62,6 +62,7 @@ export function AdminPanel() {
 
     try {
       setLoading(true);
+      await writeChangePrice(inputPrice)
       toast.success('Price update transaction simulated!');
       toast.success('Balance update transaction simulated!');
       console.log('this is price:',inputPrice)
@@ -151,7 +152,7 @@ export function AdminPanel() {
             
             <button 
               className="px-8 py-3 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-medium shadow-lg shadow-primary-500/20 transition-colors" 
-              onSubmit={handleUpdatedPrice}
+              onClick={handleUpdatedPrice}
             >
               Update Price
             </button>
