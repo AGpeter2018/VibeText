@@ -2,6 +2,8 @@ import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/react'
 import { Wallet, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import toast from 'react-hot-toast';
+
 
 export function Navbar() {
   const navigate = useNavigate();
@@ -31,11 +33,12 @@ export function Navbar() {
   
   const handleLaunch = () => {
     if (!isConnected) {
+      toast.error('Please connect your wallet to launch the app');
       return;
-    } else {
-      navigate('/app');
-    }  
+    }
+    navigate('/app');
   };
+
   
   const showSpinner = isWaiting || status === 'connecting' || status === 'reconnecting';
   const isAppView = location.pathname === '/app';
@@ -98,7 +101,7 @@ export function Navbar() {
             ) : isConnected ? (
               <>
                 <Wallet size={18} className='text-primary-500' />
-                {`${address.slice(0, 6)}...${address.slice(-4)}`}
+                {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Connected'}
               </>
             ) : (
               <>

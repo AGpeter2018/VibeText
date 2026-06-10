@@ -1,4 +1,4 @@
-import { Sparkle, Mic, ShieldAlert } from 'lucide-react';
+import { Mic, ShieldAlert } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: 'tuner' | 'admin';
@@ -27,7 +27,7 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       <nav className="flex flex-col gap-2 flex-1">
         <button 
           onClick={() => setActiveTab('tuner')}
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all cursor-pointer \${
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all cursor-pointer ${
             activeTab === 'tuner' 
               ? 'bg-primary-600/20 text-primary-400 border border-primary-500/20' 
               : 'text-slate-400 hover:bg-white/5 hover:text-slate-200 border border-transparent'
@@ -39,7 +39,7 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
 
         <button 
           onClick={() => setActiveTab('admin')}
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all cursor-pointer \${
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all cursor-pointer ${
             activeTab === 'admin' 
               ? 'bg-accent-500/20 text-accent-400 border border-accent-500/20' 
               : 'text-slate-400 hover:bg-white/5 hover:text-slate-200 border border-transparent'

@@ -34,25 +34,23 @@ const useChangePrice = () => {
             changePrice: (price: bigint) => Promise<ethers.ContractTransactionResponse>;
         }
 
+        let loadingToastId: string | undefined;
         try {
-            const loading = toast.loading('setting a new price')
+            loadingToastId = toast.loading('Setting a new price...');
             const formatPrice = ethers.parseUnits(newPrice, 18)
             const tx = await contract.changePrice(formatPrice)
-            console.log('this is contract tx:', tx)
             const receipt = await tx.wait()
-            console.log('this is contract recipt:', receipt)
-            const txStatus = receipt.status
-            toast.dismiss(loading)
-            if(txStatus === 1) {
-                toast.success('price changed successfully')
+            toast.dismiss(loadingToastId)
+            if (receipt && receipt.status === 1) {
+                toast.success('Price changed successfully')
                 return 
             } else {
-                toast.error('price changed failed')
+                toast.error('Transaction failed — price not changed')
                 return
             }
             
         } catch (error) {
-            toast.dismiss(); // Dismiss any pending loading toasts
+            if (loadingToastId) toast.dismiss(loadingToastId);
             const err = error as { reason?: string; message?: string };
             if (err.message && err.message.includes("execution reverted: You are not the owner")) {
                 toast.error("You are not the owner of the contract")

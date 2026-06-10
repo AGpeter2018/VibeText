@@ -18,9 +18,9 @@ const Dashboard = () => {
     setResult(null);
     
     setTimeout(() => {
-        let mockResponse = `This is a mocked response for the "\${dialect}" vibe originating in "\${country}" with \${intensity?.toLowerCase()} intensity.\\n\\nOriginal text was:\\n"\${text}"`;
-        if (dialect === 'Gen-Z Slang') mockResponse = `no cap, that's literally so valid bestie. straight facts fr fr 💀\\n\\n(Mocked translation of: "\${text}")`;
-        if (dialect === 'British Roadman') mockResponse = `bruv, u takin the mick? mans spitting straight facts innit.\\n\\n(Mocked translation of: "\${text}")`;
+        let mockResponse = `This is a mocked response for the "${dialect}" vibe originating in "${country}" with ${intensity?.toLowerCase()} intensity.\n\nOriginal text was:\n"${text}"`;
+        if (dialect === 'Gen-Z Slang') mockResponse = `no cap, that's literally so valid bestie. straight facts fr fr 💀\n\n(Mocked translation of: "${text}")`;
+        if (dialect === 'British Roadman') mockResponse = `bruv, u takin the mick? mans spitting straight facts innit.\n\n(Mocked translation of: "${text}")`;
         setResult(mockResponse);
         setIsLoading(false);
         }, 2000);
