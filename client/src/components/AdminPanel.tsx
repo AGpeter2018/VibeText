@@ -5,6 +5,9 @@ import useReadPrice from '../hooks/Read-hooks/useReadPrice';
 import useReadBalance from '../hooks/Read-hooks/useReadBalance';
 import useReadPause from '../hooks/Read-hooks/useReadPause';
 import useChangePrice from '../hooks/Write-hooks/useWriteChangePrice';
+import useWritePause from '../hooks/Write-hooks/useWritePause';
+import useWriteUnPause from '../hooks/Write-hooks/useWriteUnpause';
+
 import toast from 'react-hot-toast';
 import { useAppKitAccount } from '@reown/appkit/react';
 
@@ -13,12 +16,15 @@ export function AdminPanel() {
   
   const { price, loading: priceLoading } = useReadPrice();
   const { balance } = useReadBalance()
-  const { isPause } = useReadPause()
+  const { isPause, refetchPause } = useReadPause()
   const { writeChangePrice } = useChangePrice()
+  const { writePause } = useWritePause()
+  const { writeUnPause } = useWriteUnPause()
+  
   
   const [inputPrice, setInputPrice] = useState<string>("0");
-  const [inputBalance, setInputBalance] = useState<string>("0")
   const [paused, setPaused] = useState<boolean>(false);
+  // const { unPaused, setUnPaused } = useState<boolean>(false)
   const [loading, setLoading] = useState<boolean>(false);
   const [isPauseTogging, setIsPauseToggling] = useState<boolean>(false);
   const hasMounted = useRef(false);
@@ -29,13 +35,9 @@ export function AdminPanel() {
     } else {
       setInputPrice("0")
     }
+  }, [price]);
 
-    if (balance && balance !== "0") {
-      setInputBalance(balance);
-    } else {
-      setInputBalance("0")
-    }
-
+  useEffect(() => {
     if (isPause !== undefined) {
       setPaused(isPause);
       // Only toast on subsequent changes (not on initial mount)
@@ -47,7 +49,8 @@ export function AdminPanel() {
         hasMounted.current = true;
       }
     }
-  }, [price, balance, isPause]);
+    
+  }, [isPause]);
 
   const handleUpdatedPrice = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -77,13 +80,17 @@ export function AdminPanel() {
       return;
     }
     setIsPauseToggling(true);
-    // Optimistic UI update — replace with actual contract call when ready
     try {
-      const next = !paused;
-      setPaused(next);
-      toast.success(next ? 'Contract paused successfully' : 'Contract unpaused successfully');
-    } catch {
-      toast.error('Failed to toggle contract state');
+      if (paused) {
+        await writeUnPause();
+      } else {
+        await writePause();
+      }
+      // Re-read chain state so UI reflects actual contract state
+      await refetchPause();
+    } catch (error) {
+      const err = error as { message?: string };
+      toast.error(err.message || 'Failed to toggle contract state');
     } finally {
       setIsPauseToggling(false);
     }
