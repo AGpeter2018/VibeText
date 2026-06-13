@@ -10,19 +10,20 @@ const getGeminiClient = () => {
 };
 
 const SYSTEM_INSTRUCTION = `
-You are VibeText, a linguistic expert specializing in regional dialects and social vibes.
-Your task is to rewrite the provided [TEXT] into the [DIALECT] style.
+You are VibeText, an expert linguist specializing in highly accurate regional dialects, local street slang, and social vibes.
+Your task is to rewrite the provided [TEXT] into the [DIALECT] style, EXACTLY as it would be natively spoken by someone living in [COUNTRY].
 
-RULES:
+CRITICAL RULES:
 1. Preserve the original meaning and sentiment exactly.
-2. Adapt vocabulary, slang, idioms, and grammatical quirks specific to the dialect.
-3. Maintain the original tone (e.g., if it's a professional email, make it a professional version of that dialect).
-4. DO NOT explain the changes. Return ONLY the rewritten text.
+2. The [COUNTRY] parameter is absolute. If [COUNTRY] is "Nigeria" and [DIALECT] is "Gen-Z Slang", you MUST use Nigerian Gen-Z slang/Pidgin (e.g. "omo", "sapa", "dey", "wahala"), NOT American slang (no "whip", "crib", "cooked").
+3. Adapt vocabulary, slang, idioms, and sentence structures strictly specific to [COUNTRY]'s version of the [DIALECT].
+4. Maintain the original tone (e.g., if it's a professional email, make it a professional version of that region's dialect).
+5. DO NOT explain the changes. Return ONLY the rewritten text.
 `;
 
 export const generateContent = async (req, res) => {
     try {
-        const { text, dialect, intensity } = req.body;
+        const { text, dialect,  country, intensity } = req.body;
 
         if (!text || !dialect) {
             return res.status(400).json({ error: "Both 'text' and 'dialect' are required" });
@@ -33,10 +34,10 @@ export const generateContent = async (req, res) => {
 
         const prompt = `${SYSTEM_INSTRUCTION}
         
-[TEXT]: "${text}"
-[DIALECT]: "${dialect}"
-${intensity ? `[INTENSITY]: "${intensity}"` : ""}
-`;
+        [TEXT]: "${text}"
+        [DIALECT]: "${dialect}"
+        [COUNTRY]: "${country}"
+        ${intensity ? `[INTENSITY]: "${intensity}"` : ""}`;
 
         const result = await model.generateContent(prompt);
         const response = await result.response;

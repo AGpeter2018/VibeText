@@ -6,25 +6,16 @@ import { AdminPanel } from '../components/AdminPanel';
 import { TuneForm } from '../components/TuneForm';
 import { ResultCard } from '../components/ResultCard';
 
+import useApiTune from '../hooks/useApiTune';
+
+// import UsewriteRequestTune from '../hooks/Write-hooks/useWriteRequestTune';
+
 const Dashboard = () => {
   
     const [activeTab, setActiveTab] = useState<'tuner' | 'admin'>('tuner');
+    const {isLoading, result, handleTuneText} = useApiTune()
       
-    const [isLoading, setIsLoading] = useState(false);
-    const [result, setResult] = useState<string | null>(null);
-    
-    const handleTuneText = async (text: string, country: string, dialect: string, intensity?: string) => {
-    setIsLoading(true);
-    setResult(null);
-    
-    setTimeout(() => {
-        let mockResponse = `This is a mocked response for the "${dialect}" vibe originating in "${country}" with ${intensity?.toLowerCase()} intensity.\n\nOriginal text was:\n"${text}"`;
-        if (dialect === 'Gen-Z Slang') mockResponse = `no cap, that's literally so valid bestie. straight facts fr fr 💀\n\n(Mocked translation of: "${text}")`;
-        if (dialect === 'British Roadman') mockResponse = `bruv, u takin the mick? mans spitting straight facts innit.\n\n(Mocked translation of: "${text}")`;
-        setResult(mockResponse);
-        setIsLoading(false);
-        }, 2000);
-      };
+   
     // --- DASHBOARD APP RENDER ---
   return (
     <div className="flex h-screen bg-slate-950 text-slate-200 overflow-hidden font-sans">
@@ -38,14 +29,16 @@ const Dashboard = () => {
 
         <div className="flex-1 p-6 md:p-12 w-full mx-auto pt-8 md:pt-12">
            {activeTab === 'tuner' ? (
-             <div className="w-full flex flex-col items-center max-w-4xl mx-auto">
+             <div className="w-full flex flex-col items-center max-w-7xl mx-auto">
                 <div className="text-center mb-10 w-full">
                   <h2 className="text-4xl font-bold text-white mb-2">VibeTuner Interface</h2>
                   <p className="text-slate-400">Configure parameters, lock in your payment, and execute the text transformation.</p>
                 </div>
                 
-                <TuneForm onSubmit={handleTuneText} isLoading={isLoading} />
-                <ResultCard result={result} />
+                <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                  <TuneForm onSubmit={handleTuneText} isLoading={isLoading} />
+                  <ResultCard result={result} isLoading={isLoading} />
+                </div>
              </div>
            ) : (
              <div className="w-full h-full flex justify-center mt-4">
