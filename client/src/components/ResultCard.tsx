@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 
 interface ResultCardProps {
   result: string | null;
+  isLoading?: boolean;
 }
 
-export function ResultCard({ result }: ResultCardProps) {
+export function ResultCard({ result, isLoading }: ResultCardProps) {
   const [copied, setCopied] = useState(false);
   const [displayedText, setDisplayedText] = useState('');
 
@@ -39,14 +40,13 @@ export function ResultCard({ result }: ResultCardProps) {
 
   return (
     <AnimatePresence>
-      {result && (
-        <motion.div
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -20, scale: 0.95 }}
-          transition={{ duration: 0.4, type: "spring", bounce: 0.4 }}
-          className="w-full max-w-2xl mx-auto mt-8 relative group"
-        >
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -20, scale: 0.95 }}
+        transition={{ duration: 0.4, type: "spring", bounce: 0.4 }}
+        className="w-full relative group h-full"
+      >
           {/* Animated Glow Border */}
           <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-500 to-accent-500 rounded-3xl blur opacity-30 group-hover:opacity-50 transition duration-1000" />
           
@@ -76,18 +76,29 @@ export function ResultCard({ result }: ResultCardProps) {
                </button>
             </div>
 
-            <div className="bg-slate-950/50 rounded-2xl p-5 border border-white/5 min-h-[100px] relative">
-              <p className="text-slate-100 leading-relaxed font-sans whitespace-pre-wrap">
-                {displayedText}
-                {displayedText !== result && (
-                  <span className="inline-block w-2.5 h-4 ml-1 bg-primary-400 animate-pulse align-middle opacity-80" />
-                )}
-              </p>
+            <div className="bg-slate-950/50 rounded-2xl p-5 border border-white/5 min-h-[250px] relative flex flex-col">
+              {isLoading ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-4">
+                  <div className="w-8 h-8 border-4 border-slate-800 border-t-primary-500 rounded-full animate-spin"></div>
+                  <p className="text-sm animate-pulse">Tuning your vibe...</p>
+                </div>
+              ) : result ? (
+                <p className="text-slate-100 leading-relaxed font-sans whitespace-pre-wrap">
+                  {displayedText}
+                  {displayedText !== result && (
+                    <span className="inline-block w-2.5 h-4 ml-1 bg-primary-400 animate-pulse align-middle opacity-80" />
+                  )}
+                </p>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-600 gap-2 opacity-50">
+                  <Sparkle size={32} className="text-slate-700" />
+                  <p className="text-sm text-center px-4">Your tuned text will appear here.<br/>Drop some text and select a vibe to begin.</p>
+                </div>
+              )}
             </div>
 
           </div>
         </motion.div>
-      )}
     </AnimatePresence>
   );
 }

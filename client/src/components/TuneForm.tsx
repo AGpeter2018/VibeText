@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Sparkles, Languages, Settings2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+
 interface TuneFormProps {
   onSubmit: (text: string, country: string, dialect: string, intensity?: string) => void;
   isLoading: boolean;
@@ -40,7 +41,7 @@ export function TuneForm({ onSubmit, isLoading }: TuneFormProps) {
     fetch('https://restcountries.com/v3.1/all?fields=name')
       .then(res => res.json())
       .then(data => {
-        const countryNames = data.map((c: any) => c.name.common).sort();
+        const countryNames = data.map((c) => c.name.common).sort();
         setCountries(countryNames);
       })
       .catch(err => console.error("Failed to load countries:", err));
@@ -75,7 +76,7 @@ export function TuneForm({ onSubmit, isLoading }: TuneFormProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       onSubmit={handleSubmit} 
-      className="glassmorphism rounded-3xl p-6 sm:p-8 w-full max-w-2xl mx-auto flex flex-col gap-6 relative"
+      className="glassmorphism rounded-3xl p-6 sm:p-8 w-full flex flex-col gap-6 relative"
     >
       {/* Decorative background glow */}
       <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-500/10 blur-[100px] rounded-full pointer-events-none" />
