@@ -1,24 +1,33 @@
 import { Activity, Settings, Banknote, ShieldAlert } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
 import useReadPrice from '../hooks/Read-hooks/useReadPrice';
 import useReadBalance from '../hooks/Read-hooks/useReadBalance';
 import useReadPause from '../hooks/Read-hooks/useReadPause';
+import useChangePrice from '../hooks/Write-hooks/useWriteChangePrice';
+import useWritePause from '../hooks/Write-hooks/useWritePause';
+import useWriteUnPause from '../hooks/Write-hooks/useWriteUnpause';
+
 import toast from 'react-hot-toast';
 import { useAppKitAccount } from '@reown/appkit/react';
 
 export function AdminPanel() {
-  // const [isPaused, setIsPaused] = useState(false);
-  // const [balance] = useState('4.25');
   const { isConnected } = useAppKitAccount();
   
   const { price, loading: priceLoading } = useReadPrice();
   const { balance } = useReadBalance()
-  const { isPause } = useReadPause()
+  const { isPause, refetchPause } = useReadPause()
+  const { writeChangePrice } = useChangePrice()
+  const { writePause } = useWritePause()
+  const { writeUnPause } = useWriteUnPause()
+  
   
   const [inputPrice, setInputPrice] = useState<string>("0");
-  const [inputBalance, setInputBalance] = useState<string>("0")
-  const [ paused, setPaused] = useState<boolean>(false);
+  const [paused, setPaused] = useState<boolean>(false);
+  // const { unPaused, setUnPaused } = useState<boolean>(false)
   const [loading, setLoading] = useState<boolean>(false);
+  const [isPauseTogging, setIsPauseToggling] = useState<boolean>(false);
+  const hasMounted = useRef(false);
 
   useEffect(() => {
     if (price && price !== "0") {
@@ -26,22 +35,22 @@ export function AdminPanel() {
     } else {
       setInputPrice("0")
     }
+  }, [price]);
 
-    if (balance && balance !== "0") {
-      setInputBalance(balance);
-    } else {
-      setInputBalance("0")
+  useEffect(() => {
+    if (isPause !== undefined) {
+      setPaused(isPause);
+      // Only toast on subsequent changes (not on initial mount)
+      if (hasMounted.current) {
+        toast(isPause ? '⏸ Contract paused' : '▶ Contract is live', {
+          icon: isPause ? '⏸' : '✅',
+        });
+      } else {
+        hasMounted.current = true;
+      }
     }
-
-    if (isPause === true) {
-      setPaused(true)
-      toast.success("Protocol is paused")
-      console.log("this is paused")
-    }else {
-      setPaused(false)
-      toast.success("this is live")
-    }
-  }, [price, balance, isPause]);
+    
+  }, [isPause]);
 
   const handleUpdatedPrice = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -50,29 +59,49 @@ export function AdminPanel() {
       return;
     }
 
-    if (!inputPrice) {
-      toast.error('Price is not defined');
-      return;
-    }
-
-    if (!inputBalance) {
-      toast.error('Balance is not defined');
+    if (!inputPrice || inputPrice === "0") {
+      toast.error('Please enter a valid price');
       return;
     }
 
     try {
       setLoading(true);
-      toast.success('Price update transaction simulated!');
-      toast.success('Balance update transaction simulated!');
-      console.log('this is price:',inputPrice)
-      console.log('this is price:',inputBalance)
+      await writeChangePrice(inputPrice)
     } catch (error) {
-      toast.error('Failed to update price');
-      toast.error('Failed to update Balance');
       console.error(error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePauseToggle = async () => {
+    if (!isConnected) {
+      toast.error('Connect your wallet first');
+      return;
+    }
+    setIsPauseToggling(true);
+    try {
+      if (paused) {
+        await writeUnPause();
+      } else {
+        await writePause();
+      }
+      // Re-read chain state so UI reflects actual contract state
+      await refetchPause();
+    } catch (error) {
+      const err = error as { message?: string };
+      toast.error(err.message || 'Failed to toggle contract state');
+    } finally {
+      setIsPauseToggling(false);
+    }
+  };
+
+  const handleWithdraw = () => {
+    if (!isConnected) {
+      toast.error('Connect your wallet first');
+      return;
+    }
+    toast('Withdraw coming soon', { icon: '🚧' });
   };
 
   return (
@@ -103,7 +132,7 @@ export function AdminPanel() {
           ) : (
             <div className="text-4xl font-bold text-white">{balance} ETH</div>
           )}
-          <button className="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-medium transition-colors border border-white/10">
+          <button onClick={handleWithdraw} className="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-medium transition-colors border border-white/10">
             Withdraw Funds
           </button>
         </div>
@@ -119,8 +148,12 @@ export function AdminPanel() {
               {!paused ? 'Active & Live' : 'Paused'}
             </span>
           </div>
-          <button onClick={() => setPaused(!paused)} className="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-medium transition-colors border border-white/10">
-            {paused ? 'Unpause Contract' : 'Pause Contract'}
+          <button
+            onClick={handlePauseToggle}
+            disabled={isPauseTogging}
+            className="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-medium transition-colors border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isPauseTogging ? 'Processing...' : paused ? 'Unpause Contract' : 'Pause Contract'}
           </button>
         </div>
 
@@ -150,8 +183,9 @@ export function AdminPanel() {
             )}
             
             <button 
-              className="px-8 py-3 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-medium shadow-lg shadow-primary-500/20 transition-colors" 
-              onSubmit={handleUpdatedPrice}
+              className="px-8 py-3 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-medium shadow-lg shadow-primary-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+              onClick={handleUpdatedPrice}
+              disabled={loading || priceLoading}
             >
               Update Price
             </button>

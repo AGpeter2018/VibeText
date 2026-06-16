@@ -19,7 +19,7 @@ const metadata = {
 };
 
 // 4. Create a AppKit instance
-createAppKit({
+const appkit = createAppKit({
   adapters: [new EthersAdapter()],
   networks,
   metadata,
@@ -32,6 +32,7 @@ createAppKit({
   },
    allWallets: 'SHOW'
 });
+appkit.switchNetwork(liskSepolia);
 
 export default function AppKitWrapper({ children}: {children: ReactNode})  {
   return <div>{children}</div>;
