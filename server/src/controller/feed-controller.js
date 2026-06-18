@@ -3,12 +3,13 @@ import Post from '../models/Post.js';
 export const publishPost = async (req, res) => {
     try {
         const { originalText, tunedText, vibe, intensity } = req.body;
+        const authorId = req.user._id;
         
         if (!originalText || !tunedText || !vibe || !intensity) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
-        const newPost = new Post({ originalText, tunedText, vibe, intensity });
+        const newPost = new Post({ originalText, tunedText, vibe, intensity, authorId });
         await newPost.save();
 
         res.status(201).json({ message: 'Post published successfully', post: newPost });

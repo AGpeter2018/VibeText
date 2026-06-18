@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import { generateContent } from '../controller/ai-controller.js'
 import feedRoutes from './routes/feed.js';
+import authRoutes from './routes/auth.js';
 import connectDB from './config/db.js';
 
 connectDB();
@@ -45,5 +46,6 @@ app.get('/', (req, res) => {
 // Route
 app.post('/api/tune', generateContent);
 app.use('/api/feed', feedRoutes);
+app.use('/api/auth', authRoutes);
 
 export default app

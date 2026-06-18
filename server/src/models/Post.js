@@ -19,6 +19,11 @@ const postSchema = new mongoose.Schema({
         min: 1,
         max: 10
     },
+    authorId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: false // Nullable for anonymous users
+    },
     upvotes: {
         type: Number,
         default: 0,
