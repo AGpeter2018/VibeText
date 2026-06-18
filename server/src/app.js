@@ -1,6 +1,10 @@
 import express from 'express'
 import cors from 'cors'
 import { generateContent } from '../controller/ai-controller.js'
+import feedRoutes from './routes/feed.js';
+import connectDB from './config/db.js';
+
+connectDB();
 
 const app = express()
 // Middleware
@@ -40,5 +44,6 @@ app.get('/', (req, res) => {
 
 // Route
 app.post('/api/tune', generateContent);
+app.use('/api/feed', feedRoutes);
 
 export default app
