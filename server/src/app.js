@@ -1,6 +1,6 @@
 import express from 'express'
 import cors from 'cors'
-import { generateContent } from '../controller/ai-controller.js'
+import { generateContent, proxyImage } from './controller/ai-controller.js'
 import authRoutes from './routes/auth-route.js'
 import feedRoutes from './routes/feed-route.js'
 
@@ -44,6 +44,7 @@ app.get('/', (req, res) => {
 
 // Routes
 app.post('/api/tune', generateContent);
+app.get('/api/image-proxy', proxyImage);
 app.use('/api/auth', authRoutes);
 app.use('/api/feed', feedRoutes);
 

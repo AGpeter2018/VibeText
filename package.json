@@ -5,7 +5,7 @@
   "main": "server/src/index.js",
   "scripts": {
     "start": "node server/src/index.js",
-    "dev": "nodemon --watch .env server/src/index.js"
+    "dev": "nodemon --watch .env --watch server/src server/src/index.js"
   },
   "keywords": [],
   "author": "",

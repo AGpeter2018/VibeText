@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Copy, Check, Sparkle, Share2, UploadCloud } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 import { useAuth } from '../context/AuthContext';
 import { AuthModal } from './AuthModal';
 import api from '../lib/api';
@@ -12,9 +12,10 @@ interface ResultCardProps {
   originalText: string;
   vibe: string;
   intensity: number;
+  imageUrl?: string | null;
 }
 
-export function ResultCard({ result, originalText, vibe, intensity }: ResultCardProps) {
+export function ResultCard({ result, originalText, vibe, intensity, imageUrl }: ResultCardProps) {
   const [copied, setCopied] = useState(false);
   const [displayedText, setDisplayedText] = useState('');
   const [isPublishing, setIsPublishing] = useState(false);
@@ -55,17 +56,25 @@ export function ResultCard({ result, originalText, vibe, intensity }: ResultCard
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+
   const handleShareImage = async () => {
     if (!cardRef.current) return;
+    setIsGeneratingImage(true);
     try {
-      const canvas = await html2canvas(cardRef.current, { backgroundColor: '#020617' });
-      const image = canvas.toDataURL("image/png");
+      const dataUrl = await toPng(cardRef.current, { backgroundColor: '#020617', cacheBust: true });
       const link = document.createElement('a');
-      link.href = image;
-      link.download = `VibeText-\${vibe.replace(/\\s+/g, '-')}.png`;
+      link.href = dataUrl;
+      const cleanVibe = vibe.replace(/\s+/g, '-');
+      link.download = `VibeText-${cleanVibe}.png`;
+      document.body.appendChild(link);
       link.click();
-    } catch (err) {
+      document.body.removeChild(link);
+    } catch (err: any) {
       console.error("Failed to generate image", err);
+      alert("Failed to generate image: " + (err.message || err));
+    } finally {
+      setIsGeneratingImage(false);
     }
   };
 
@@ -81,7 +90,8 @@ export function ResultCard({ result, originalText, vibe, intensity }: ResultCard
         originalText,
         tunedText: result,
         vibe,
-        intensity
+        intensity,
+        imageUrl
       });
       navigate('/feed');
     } catch (err: any) {
@@ -107,7 +117,19 @@ export function ResultCard({ result, originalText, vibe, intensity }: ResultCard
             
             <div className="relative glassmorphism rounded-3xl p-6 sm:p-8 flex flex-col gap-4">
               
-              <div ref={cardRef} className="bg-slate-950 p-6 rounded-2xl border border-white/5">
+              <div ref={cardRef} className="bg-slate-950 p-6 rounded-2xl border border-white/5 flex flex-col">
+                
+                {imageUrl && (
+                  <div className="w-full h-48 sm:h-64 mb-6 rounded-xl overflow-hidden border border-white/10 relative shrink-0">
+                    <img 
+                      src={imageUrl} 
+                      alt="Vibe AI Art" 
+                      className="w-full h-full object-cover"
+                      crossOrigin="anonymous"
+                    />
+                  </div>
+                )}
+
                 <div className="flex items-center gap-2 text-primary-400 font-medium mb-4">
                   <Sparkle size={18} />
                   <h3>{vibe} (Intensity: {intensity})</h3>
@@ -141,10 +163,11 @@ export function ResultCard({ result, originalText, vibe, intensity }: ResultCard
                     
                     <button 
                       onClick={handleShareImage}
-                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-slate-300 hover:text-white text-sm font-medium transition-all"
+                      disabled={isGeneratingImage || !isTypingDone}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-slate-300 hover:text-white text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <Share2 size={16} />
-                      Share Image
+                      {isGeneratingImage ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Share2 size={16} />}
+                      {isGeneratingImage ? 'Generating...' : 'Share Image'}
                     </button>
                 </div>
 

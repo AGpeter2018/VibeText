@@ -10,6 +10,7 @@ export default function Tune() {
   const [intensity, setIntensity] = useState(5);
   const [isLoading, setIsLoading] = useState(false);
   const [tunedText, setTunedText] = useState('');
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const VIBES = [
     'Gen Z', 'Corporate', 'Shakespearean', 'Pirate', 'Cyberpunk', 
@@ -22,6 +23,7 @@ export default function Tune() {
     try {
       const res = await api.post('tune', { text: originalText, dialect: vibe, intensity });
       setTunedText(res.data.content);
+      setImageUrl(res.data.imageUrl);
     } catch (err) {
       console.error(err);
       alert('Failed to tune text. Please try again.');
@@ -158,7 +160,8 @@ export default function Tune() {
                 originalText={originalText}
                 result={tunedText} 
                 vibe={vibe} 
-                intensity={intensity} 
+                intensity={intensity}
+                imageUrl={imageUrl}
               />
             </motion.div>
           )}

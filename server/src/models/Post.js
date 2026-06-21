@@ -14,6 +14,10 @@ const postSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    imageUrl: {
+        type: String,
+        required: false,
+    },
     vibe: {
         type: String,
         required: true,
@@ -31,6 +35,21 @@ const postSchema = new mongoose.Schema({
     upvotedBy: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
+    }],
+    replies: [{
+        authorId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true,
+        },
+        text: {
+            type: String,
+            required: true,
+        },
+        createdAt: {
+            type: Date,
+            default: Date.now,
+        }
     }],
 }, { timestamps: true });
 
