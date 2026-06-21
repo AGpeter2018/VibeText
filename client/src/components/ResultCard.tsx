@@ -1,31 +1,49 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Copy, Check, Sparkle } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Copy, Check, Sparkle, Share2, UploadCloud } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import html2canvas from 'html2canvas';
+import { useAuth } from '../context/AuthContext';
+import { AuthModal } from './AuthModal';
+import api from '../lib/api';
+import { useNavigate } from 'react-router-dom';
 
 interface ResultCardProps {
   result: string | null;
+  originalText: string;
+  vibe: string;
+  intensity: number;
 }
 
-export function ResultCard({ result }: ResultCardProps) {
+export function ResultCard({ result, originalText, vibe, intensity }: ResultCardProps) {
   const [copied, setCopied] = useState(false);
   const [displayedText, setDisplayedText] = useState('');
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isTypingDone, setIsTypingDone] = useState(false);
+  
+  const cardRef = useRef<HTMLDivElement>(null);
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   // Typewriter effect
   useEffect(() => {
     if (!result) {
       setDisplayedText('');
+      setIsTypingDone(false);
       return;
     }
 
     setDisplayedText('');
+    setIsTypingDone(false);
     let i = 0;
     const intervalId = setInterval(() => {
       setDisplayedText((prev) => prev + result.charAt(i));
       i++;
       if (i >= result.length) {
+        setIsTypingDone(true);
         clearInterval(intervalId);
       }
-    }, 15); // Speed of typing in ms
+    }, 15);
 
     return () => clearInterval(intervalId);
   }, [result]);
@@ -37,57 +55,115 @@ export function ResultCard({ result }: ResultCardProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleShareImage = async () => {
+    if (!cardRef.current) return;
+    try {
+      const canvas = await html2canvas(cardRef.current, { backgroundColor: '#020617' });
+      const image = canvas.toDataURL("image/png");
+      const link = document.createElement('a');
+      link.href = image;
+      link.download = `VibeText-\${vibe.replace(/\\s+/g, '-')}.png`;
+      link.click();
+    } catch (err) {
+      console.error("Failed to generate image", err);
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!isAuthenticated) {
+      setIsAuthOpen(true);
+      return;
+    }
+    
+    setIsPublishing(true);
+    try {
+      await api.post('feed/publish', {
+        originalText,
+        tunedText: result,
+        vibe,
+        intensity
+      });
+      navigate('/feed');
+    } catch (err: any) {
+      console.error('Failed to publish', err);
+      alert('Failed to publish: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   return (
-    <AnimatePresence>
-      {result && (
-        <motion.div
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -20, scale: 0.95 }}
-          transition={{ duration: 0.4, type: "spring", bounce: 0.4 }}
-          className="w-full max-w-2xl mx-auto mt-8 relative group"
-        >
-          {/* Animated Glow Border */}
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-500 to-accent-500 rounded-3xl blur opacity-30 group-hover:opacity-50 transition duration-1000" />
-          
-          <div className="relative glassmorphism rounded-3xl p-6 sm:p-8 flex flex-col gap-4">
+    <>
+      <AnimatePresence>
+        {result && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ duration: 0.4, type: "spring", bounce: 0.4 }}
+            className="w-full max-w-2xl mx-auto mt-8 relative group"
+          >
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-500 to-accent-500 rounded-3xl blur opacity-30 group-hover:opacity-50 transition duration-1000" />
             
-            <div className="flex items-center justify-between">
-               <div className="flex items-center gap-2 text-primary-400 font-medium">
-                <Sparkle size={18} />
-                <h3>Your Vibe</h3>
-               </div>
-               
-               <button 
-                onClick={handleCopy}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 text-slate-300 hover:text-white text-sm font-medium transition-all"
-               >
-                 {copied ? (
-                   <>
-                     <Check size={14} className="text-green-400" />
-                     <span className="text-green-400">Copied</span>
-                   </>
-                 ) : (
-                   <>
-                     <Copy size={14} />
-                     <span>Copy</span>
-                   </>
-                 )}
-               </button>
-            </div>
+            <div className="relative glassmorphism rounded-3xl p-6 sm:p-8 flex flex-col gap-4">
+              
+              <div ref={cardRef} className="bg-slate-950 p-6 rounded-2xl border border-white/5">
+                <div className="flex items-center gap-2 text-primary-400 font-medium mb-4">
+                  <Sparkle size={18} />
+                  <h3>{vibe} (Intensity: {intensity})</h3>
+                </div>
 
-            <div className="bg-slate-950/50 rounded-2xl p-5 border border-white/5 min-h-[100px] relative">
-              <p className="text-slate-100 leading-relaxed font-sans whitespace-pre-wrap">
-                {displayedText}
-                {displayedText !== result && (
-                  <span className="inline-block w-2.5 h-4 ml-1 bg-primary-400 animate-pulse align-middle opacity-80" />
-                )}
-              </p>
-            </div>
+                <div className="bg-white/5 rounded-xl p-4 text-slate-400 text-sm italic mb-4">
+                  "{originalText}"
+                </div>
 
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+                <p className="text-slate-100 leading-relaxed font-sans whitespace-pre-wrap text-lg">
+                  {displayedText}
+                  {!isTypingDone && (
+                    <span className="inline-block w-2.5 h-4 ml-1 bg-primary-400 animate-pulse align-middle opacity-80" />
+                  )}
+                </p>
+
+                <div className="mt-6 text-center text-slate-600 text-xs font-semibold tracking-wider uppercase">
+                  Made with VibeText.com
+                </div>
+              </div>
+
+              <div className="flex flex-wrap justify-between items-center gap-4 mt-2">
+                <div className="flex gap-2">
+                    <button 
+                      onClick={handleCopy}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-slate-300 hover:text-white text-sm font-medium transition-all"
+                    >
+                      {copied ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
+                      {copied ? <span className="text-green-400">Copied</span> : <span>Copy</span>}
+                    </button>
+                    
+                    <button 
+                      onClick={handleShareImage}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-slate-300 hover:text-white text-sm font-medium transition-all"
+                    >
+                      <Share2 size={16} />
+                      Share Image
+                    </button>
+                </div>
+
+                <button 
+                  onClick={handlePublish}
+                  disabled={isPublishing || !isTypingDone}
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-medium transition-all shadow-lg shadow-primary-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isPublishing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <UploadCloud size={18} />}
+                  Publish to Vibe Wall
+                </button>
+              </div>
+
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+    </>
   );
 }

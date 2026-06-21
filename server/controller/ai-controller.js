@@ -29,7 +29,7 @@ export const generateContent = async (req, res) => {
         }
 
         const genAI = getGeminiClient();
-        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
         const prompt = `${SYSTEM_INSTRUCTION}
         

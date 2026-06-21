@@ -1,6 +1,8 @@
 import express from 'express'
 import cors from 'cors'
 import { generateContent } from '../controller/ai-controller.js'
+import authRoutes from './routes/auth-route.js'
+import feedRoutes from './routes/feed-route.js'
 
 const app = express()
 // Middleware
@@ -8,7 +10,9 @@ const app = express()
 // CORS configuration
 const allowedOrigins = [
     'http://localhost:5173',
+    'http://localhost:5174',
     'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174',
     process.env.CLIENT_URL
 ].filter(Boolean);
 
@@ -38,7 +42,9 @@ app.get('/', (req, res) => {
     res.status(200).json({ message: 'VibeText API is running...' });
 });
 
-// Route
+// Routes
 app.post('/api/tune', generateContent);
+app.use('/api/auth', authRoutes);
+app.use('/api/feed', feedRoutes);
 
 export default app
