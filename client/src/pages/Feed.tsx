@@ -5,7 +5,7 @@ import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { AuthModal } from '../components/AuthModal';
 import Avatar from 'boring-avatars';
-import { Sparkles, TrendingUp, Heart, Share2, Flame, Plus, Clock, MessageCircle, Copy, Check } from 'lucide-react';
+import { Sparkles, TrendingUp, Heart, Share2, Flame, Plus, Clock, MessageCircle, Copy, Check, Bookmark, Star } from 'lucide-react';
 
 function timeAgo(dateInput: string) {
   const date = new Date(dateInput);
@@ -25,6 +25,7 @@ function timeAgo(dateInput: string) {
 
 export default function Feed() {
   const [posts, setPosts] = useState<any[]>([]);
+  const [trendingPostsData, setTrendingPostsData] = useState<any[]>([]);
   const [trendingVibes, setTrendingVibes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { isAuthenticated, token } = useAuth();
@@ -41,6 +42,7 @@ export default function Feed() {
   }, [token]);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set());
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [isReplying, setIsReplying] = useState(false);
@@ -50,7 +52,7 @@ export default function Feed() {
 
   // Derive filtered and sorted posts
   const displayedPosts = useMemo(() => {
-    let result = [...posts];
+    let result = activeTab === 'trending' ? [...trendingPostsData] : [...posts];
 
     // Filter by tag if selected
     if (activeTag) {
@@ -58,32 +60,38 @@ export default function Feed() {
     }
 
     // Sort by tab
-    if (activeTab === 'trending') {
-      result.sort((a, b) => b.upvotes - a.upvotes);
-    } else if (activeTab === 'recent') {
+    if (activeTab === 'recent') {
       result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } else if (activeTab === 'for_you') {
-      // Simple MVP algorithm: mix of upvotes and recency (or just randomize slightly for flavor)
-      // For now, let's just show posts with at least 1 upvote, sorted recently
+      // Simple MVP algorithm: mix of upvotes and recency
       result = result.filter(p => p.upvotes > 0).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      // Fallback if empty
       if (result.length === 0) result = [...posts];
     }
 
     return result;
-  }, [posts, activeTab, activeTag]);
+  }, [posts, trendingPostsData, activeTab, activeTag]);
 
   useEffect(() => {
     const fetchFeed = async () => {
       try {
-        const [feedRes, trendingRes] = await Promise.all([
+        const [feedRes, trendingVibesRes, trendingPostsRes] = await Promise.all([
           api.get('feed'),
-          api.get('feed/trending')
+          api.get('feed/trending'),
+          api.get('feed/trending-posts')
         ]);
         setPosts(feedRes.data);
-        setTrendingVibes(trendingRes.data);
+        setTrendingVibes(trendingVibesRes.data);
+        setTrendingPostsData(trendingPostsRes.data);
         
-        if (currentUserId) {
+        if (currentUserId && isAuthenticated) {
+          try {
+            const savedRes = await api.get('user/saved');
+            const savedIds = savedRes.data.map((p: any) => typeof p === 'string' ? p : p._id);
+            setSavedPosts(new Set(savedIds));
+          } catch (e) {
+            console.error('Failed to fetch saved posts', e);
+          }
+
           const userLikes = feedRes.data
             .filter((p: any) => p.upvotedBy?.includes(currentUserId))
             .map((p: any) => p._id);
@@ -96,7 +104,7 @@ export default function Feed() {
       }
     };
     fetchFeed();
-  }, []);
+  }, [isAuthenticated, currentUserId]);
 
   const handleUpvote = async (id: string) => {
     if (!isAuthenticated) {
@@ -124,6 +132,43 @@ export default function Feed() {
       const revertedLiked = new Set(likedPosts);
       isLiked ? revertedLiked.add(id) : revertedLiked.delete(id);
       setLikedPosts(revertedLiked);
+    }
+  };
+
+  const handleSavePost = async (id: string) => {
+    if (!isAuthenticated) return setIsAuthOpen(true);
+    const isSaved = savedPosts.has(id);
+    const newSaved = new Set(savedPosts);
+    isSaved ? newSaved.delete(id) : newSaved.add(id);
+    setSavedPosts(newSaved);
+
+    try {
+      await api.post(`feed/save/${id}`);
+    } catch {
+      isSaved ? newSaved.add(id) : newSaved.delete(id);
+      setSavedPosts(newSaved);
+    }
+  };
+
+  const handleSharePost = async (id: string) => {
+    try {
+      await api.post(`feed/share/${id}`);
+      // Usually would open a share dialog or copy link here
+      // For now, we just increment the share count in DB
+      alert('Thanks for sharing!');
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleRatePost = async (id: string, score: number) => {
+    if (!isAuthenticated) return setIsAuthOpen(true);
+    try {
+      const res = await api.post(`feed/rate/${id}`, { score });
+      setPosts(posts.map(p => p._id === id ? { ...p, authenticityScore: res.data.authenticityScore } : p));
+      setTrendingPostsData(trendingPostsData.map(p => p._id === id ? { ...p, authenticityScore: res.data.authenticityScore } : p));
+    } catch (err) {
+      console.error('Failed to rate', err);
     }
   };
 
@@ -297,6 +342,27 @@ export default function Feed() {
                   </div>
                 </div>
                 
+                {/* Authenticity Rating UI */}
+                <div className="mt-2 pt-3 border-t border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Authenticity:</span>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <button 
+                          key={star}
+                          onClick={() => handleRatePost(post._id, star)}
+                          className={`hover:scale-110 transition-transform ${post.authenticityScore >= star ? 'text-yellow-400' : 'text-slate-600 hover:text-yellow-400/50'}`}
+                        >
+                          <Star size={16} className={post.authenticityScore >= star ? 'fill-yellow-400' : ''} />
+                        </button>
+                      ))}
+                    </div>
+                    {post.authenticityScore > 0 && (
+                      <span className="text-xs text-slate-500 ml-1">({post.authenticityScore.toFixed(1)})</span>
+                    )}
+                  </div>
+                </div>
+
                 {/* Post Actions */}
                 <div className="pt-4 border-t border-white/5 flex items-center justify-between mt-2">
                   <div className="flex gap-6">
@@ -318,13 +384,24 @@ export default function Feed() {
                   </div>
                   <div className="flex gap-2">
                     <button 
+                      onClick={() => handleSavePost(post._id)}
+                      className={`transition-colors p-2 rounded-full hover:bg-white/5 ${savedPosts.has(post._id) ? 'text-primary-400' : 'text-slate-400 hover:text-white'}`}
+                      title="Save Vibe"
+                    >
+                      <Bookmark size={18} className={savedPosts.has(post._id) ? 'fill-primary-400' : ''} />
+                    </button>
+                    <button 
                       onClick={() => handleCopyText(post._id, post.tunedText)}
                       className="text-slate-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/5"
                       title="Copy Vibe"
                     >
                       {copiedPostId === post._id ? <Check size={18} className="text-green-400" /> : <Copy size={18} />}
                     </button>
-                    <button className="text-slate-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/5" title="Share Vibe">
+                    <button 
+                      onClick={() => handleSharePost(post._id)}
+                      className="text-slate-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/5" 
+                      title="Share Vibe"
+                    >
                       <Share2 size={18} />
                     </button>
                   </div>

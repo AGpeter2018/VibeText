@@ -39,10 +39,37 @@ export function Navbar() {
           >
             Studio
           </Link>
+          <Link 
+            to="/requests"
+            className="hidden sm:block text-slate-300 hover:text-white font-medium transition-colors"
+          >
+            Marketplace
+          </Link>
+
+          {isAuthenticated && (
+            <Link 
+              to="/dashboard"
+              className="hidden sm:block text-slate-300 hover:text-white font-medium transition-colors"
+            >
+              Dashboard
+            </Link>
+          )}
 
           {isAuthenticated && user ? (
             <div className="flex items-center gap-4">
-              <img src={user.picture} alt={user.name} className="w-10 h-10 rounded-full border border-slate-700" />
+              <Link 
+                to="/dashboard"
+                className="hover:scale-105 transition-transform"
+                title="Open Dashboard"
+              >
+                {user.picture ? (
+                  <img src={user.picture} alt={user.name} className="w-10 h-10 rounded-full border-2 border-slate-700 hover:border-primary-500 transition-colors" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full border-2 border-slate-700 hover:border-primary-500 transition-colors bg-slate-800 flex items-center justify-center font-bold text-white">
+                    {user.name.charAt(0)}
+                  </div>
+                )}
+              </Link>
               <button 
                 onClick={logout}
                 className="text-slate-400 hover:text-white transition-colors p-2"

@@ -1,4 +1,5 @@
 import Post from '../models/Post.js';
+import User from '../models/User.js';
 
 export const getTrendingVibes = async (req, res) => {
     try {
@@ -33,6 +34,36 @@ export const getFeed = async (req, res) => {
     } catch (error) {
         console.error('Error fetching feed:', error);
         res.status(500).json({ error: 'Failed to fetch feed' });
+    }
+};
+
+export const getTrendingPosts = async (req, res) => {
+    try {
+        // Find trending posts based on a score combining upvotes, shares, and authenticity
+        const posts = await Post.aggregate([
+            {
+                $addFields: {
+                    trendingScore: {
+                        $add: [
+                            { $multiply: ["$upvotes", 2] },
+                            { $multiply: ["$sharesCount", 3] },
+                            { $multiply: ["$savesCount", 3] },
+                            { $multiply: ["$authenticityScore", 5] }
+                        ]
+                    }
+                }
+            },
+            { $sort: { trendingScore: -1, createdAt: -1 } },
+            { $limit: 20 }
+        ]);
+
+        await Post.populate(posts, { path: 'authorId', select: 'name picture' });
+        await Post.populate(posts, { path: 'replies.authorId', select: 'name picture' });
+
+        res.status(200).json(posts);
+    } catch (error) {
+        console.error('Error fetching trending posts:', error);
+        res.status(500).json({ error: 'Failed to fetch trending posts' });
     }
 };
 
@@ -111,5 +142,86 @@ export const replyToPost = async (req, res) => {
     } catch (error) {
         console.error('Error adding reply:', error);
         res.status(500).json({ error: 'Failed to add reply' });
+    }
+};
+
+export const ratePost = async (req, res) => {
+    try {
+        const { score, note } = req.body;
+        if (!score || score < 1 || score > 5) {
+            return res.status(400).json({ error: 'Valid score (1-5) is required' });
+        }
+
+        const post = await Post.findById(req.params.id);
+        if (!post) {
+            return res.status(404).json({ error: 'Post not found' });
+        }
+
+        // Check if user already rated
+        const existingRatingIndex = post.authenticityRatings.findIndex(r => r.userId.toString() === req.userId);
+        
+        if (existingRatingIndex >= 0) {
+            // Update existing rating
+            post.authenticityRatings[existingRatingIndex].score = score;
+            if (note !== undefined) post.authenticityRatings[existingRatingIndex].note = note;
+        } else {
+            // Add new rating
+            post.authenticityRatings.push({
+                userId: req.userId,
+                score,
+                note
+            });
+        }
+
+        // Recalculate average
+        const totalScore = post.authenticityRatings.reduce((sum, r) => sum + r.score, 0);
+        post.authenticityScore = totalScore / post.authenticityRatings.length;
+
+        await post.save();
+        res.status(200).json({ authenticityScore: post.authenticityScore, ratingsCount: post.authenticityRatings.length });
+    } catch (error) {
+        console.error('Error rating post:', error);
+        res.status(500).json({ error: 'Failed to rate post' });
+    }
+};
+
+export const savePost = async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id);
+        if (!post) return res.status(404).json({ error: 'Post not found' });
+
+        const user = await User.findById(req.userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const isSaved = user.savedPosts.includes(post._id);
+        
+        if (isSaved) {
+            user.savedPosts = user.savedPosts.filter(id => id.toString() !== post._id.toString());
+            post.savesCount = Math.max(0, post.savesCount - 1);
+        } else {
+            user.savedPosts.push(post._id);
+            post.savesCount += 1;
+        }
+
+        await Promise.all([user.save(), post.save()]);
+        res.status(200).json({ isSaved: !isSaved, savesCount: post.savesCount });
+    } catch (error) {
+        console.error('Error saving post:', error);
+        res.status(500).json({ error: 'Failed to save post' });
+    }
+};
+
+export const sharePost = async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id);
+        if (!post) return res.status(404).json({ error: 'Post not found' });
+
+        post.sharesCount += 1;
+        await post.save();
+
+        res.status(200).json({ sharesCount: post.sharesCount });
+    } catch (error) {
+        console.error('Error sharing post:', error);
+        res.status(500).json({ error: 'Failed to share post' });
     }
 };

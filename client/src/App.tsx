@@ -4,6 +4,8 @@ import { Footer } from './components/Footer';
 import Landing from './pages/Landing';
 import Feed from './pages/Feed';
 import Tune from './pages/Tune';
+import Dashboard from './pages/Dashboard';
+import Marketplace from './pages/Marketplace';
 
 function App() {
   return (
@@ -17,6 +19,9 @@ function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/feed" element={<Feed />} />
           <Route path="/tune" element={<Tune />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/requests" element={<Marketplace />} />
+          <Route path="/me" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>

@@ -3,6 +3,9 @@ import cors from 'cors'
 import { generateContent, proxyImage } from './controller/ai-controller.js'
 import authRoutes from './routes/auth-route.js'
 import feedRoutes from './routes/feed-route.js'
+import userRoutes from './routes/user-route.js'
+import adminRoutes from './routes/admin-route.js'
+import requestRoutes from './routes/request-route.js'
 
 const app = express()
 // Middleware
@@ -47,5 +50,8 @@ app.post('/api/tune', generateContent);
 app.get('/api/image-proxy', proxyImage);
 app.use('/api/auth', authRoutes);
 app.use('/api/feed', feedRoutes);
+app.use('/api/user', userRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/requests', requestRoutes);
 
 export default app
