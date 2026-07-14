@@ -1,4 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import Generation from "../models/Generation.js";
+import jwt from "jsonwebtoken";
 
 // Lazy initialization of Gemini client
 const getGeminiClient = () => {
@@ -28,6 +30,19 @@ export const generateContent = async (req, res) => {
             return res.status(400).json({ error: "Both 'text' and 'dialect' are required" });
         }
 
+        // Try to extract user ID from auth token if present (since generation endpoint is public)
+        let userId = null;
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.split(' ')[1];
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                userId = decoded.userId;
+            } catch (err) {
+                // Token invalid or expired - ignore and proceed as anonymous
+            }
+        }
+
         const genAI = getGeminiClient();
         const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
@@ -41,9 +56,21 @@ ${intensity ? `[INTENSITY]: "${intensity}"` : ""}
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const generatedText = response.text().replace(/```json|```/g, '').trim();
-        
+
         const parsed = JSON.parse(generatedText);
-        
+
+        // Log generation in background
+        try {
+            await Generation.create({
+                userId,
+                vibe: dialect,
+                intensity: Number(intensity || 5)
+            });
+        } catch (logErr) {
+            console.error("Failed to log generation:", logErr);
+        }
+
+
         // Point to our own proxy endpoint to avoid CORS 403 errors from the browser
         const optimizedPrompt = `${parsed.imagePrompt}, cinematic lighting, highly detailed, aesthetic`;
         const baseUrl = req.protocol + '://' + req.get('host');
@@ -61,13 +88,13 @@ export const proxyImage = async (req, res) => {
         const { prompt } = req.query;
         if (!prompt) return res.status(400).json({ error: "prompt is required" });
         const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=400&nologo=true`;
-        
+
         const imageRes = await fetch(imageUrl);
         if (!imageRes.ok) throw new Error("Failed to fetch image from Pollinations");
-        
+
         const arrayBuffer = await imageRes.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        
+
         res.setHeader('Content-Type', 'image/jpeg');
         res.setHeader('Cache-Control', 'public, max-age=31536000');
         res.setHeader('Access-Control-Allow-Origin', '*');

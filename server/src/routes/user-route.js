@@ -1,6 +1,6 @@
 import express from 'express';
 import { requireAuth } from '../middleware/requireAuth.js';
-import { getUserDashboard, getSystemStats, deletePost, getCurrentUser, getSavedPosts } from '../controller/user-controller.js';
+import { getUserDashboard, getSystemStats, deletePost, getCurrentUser, getSavedPosts, getNorthStarMetric } from '../controller/user-controller.js';
 
 const router = express.Router();
 
@@ -15,6 +15,9 @@ router.get('/saved', requireAuth, getSavedPosts);
 
 // GET /api/user/global-stats — public or auth
 router.get('/global-stats', getSystemStats);
+
+// GET /api/user/north-star — public or auth
+router.get('/north-star', getNorthStarMetric);
 
 // DELETE /api/user/post/:id — requires auth
 router.delete('/post/:id', requireAuth, deletePost);

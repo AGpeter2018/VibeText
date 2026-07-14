@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ArrowUpCircle, Plus, MessageSquare } from 'lucide-react';
+import { Sparkles, ArrowUpCircle, Plus, MessageSquare, PenTool } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { AuthModal } from '../components/AuthModal';
@@ -16,6 +17,8 @@ export default function Marketplace() {
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const navigate = useNavigate();
 
   const fetchRequests = async () => {
     try {
@@ -182,15 +185,24 @@ export default function Marketplace() {
                   <h3 className="text-xl font-bold text-white mb-2">{req.title}</h3>
                   <p className="text-slate-400 text-sm leading-relaxed mb-4">{req.description}</p>
                   
-                  <div className="flex items-center gap-2">
-                    {req.authorId?.picture ? (
-                      <img src={req.authorId.picture} alt="avatar" className="w-6 h-6 rounded-full" />
-                    ) : (
-                      <Avatar size={24} name={req.authorId?._id || req._id} variant="beam" />
-                    )}
-                    <span className="text-xs text-slate-500 font-medium">
-                      Requested by {req.authorId?.name || 'Unknown'} • {new Date(req.createdAt).toLocaleDateString()}
-                    </span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {req.authorId?.picture ? (
+                        <img src={req.authorId.picture} alt="avatar" className="w-6 h-6 rounded-full" />
+                      ) : (
+                        <Avatar size={24} name={req.authorId?._id || req._id} variant="beam" />
+                      )}
+                      <span className="text-xs text-slate-500 font-medium">
+                        Requested by {req.authorId?.name || 'Unknown'} • {new Date(req.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    <button 
+                      onClick={() => navigate(`/tune?requestId=${req._id}&requestTitle=${encodeURIComponent(req.title)}`)}
+                      className="bg-white/10 hover:bg-white/20 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors flex items-center gap-2"
+                    >
+                      <PenTool size={16} /> Fulfill Request
+                    </button>
                   </div>
                 </div>
               </motion.div>

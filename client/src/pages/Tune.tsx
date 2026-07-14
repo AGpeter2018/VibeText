@@ -1,19 +1,21 @@
 import { useState } from 'react';
-import { Sparkles, Settings2, SlidersHorizontal, Share2, Type } from 'lucide-react';
+import { Sparkles, Settings2, SlidersHorizontal, Type } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../lib/api';
 import { ResultCard } from '../components/ResultCard';
+import { useSearchParams } from 'react-router-dom';
 
 export default function Tune() {
+  const [searchParams] = useSearchParams();
   const [originalText, setOriginalText] = useState('');
-  const [vibe, setVibe] = useState('Gen Z');
+  const [vibe, setVibe] = useState(searchParams.get('vibe') || 'Gen Z');
   const [intensity, setIntensity] = useState(5);
   const [isLoading, setIsLoading] = useState(false);
   const [tunedText, setTunedText] = useState('');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const VIBES = [
-    'Gen Z', 'Corporate', 'Shakespearean', 'Pirate', 'Cyberpunk', 
+    'Gen Z', 'Corporate', 'Shakespearean', 'Pirate', 'Cyberpunk',
     'passive-aggressive', 'Overly Enthusiastic', 'Surfer', 'Goth'
   ];
 
@@ -42,7 +44,7 @@ export default function Tune() {
       </div>
 
       <div className="w-full grid grid-cols-1 md:grid-cols-12 gap-8">
-        
+
         {/* Input & Controls */}
         <div className="md:col-span-7 flex flex-col gap-6">
           <div className="glassmorphism p-6 rounded-3xl">
@@ -65,25 +67,24 @@ export default function Tune() {
             <div className="flex items-center gap-2 mb-6 text-white font-semibold">
               <Settings2 size={18} className="text-accent-400" /> Engine Settings
             </div>
-            
+
             <div className="flex flex-col gap-6">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-3">Target Vibe</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {VIBES.slice(0,6).map((v) => (
+                  {VIBES.slice(0, 6).map((v) => (
                     <button
                       key={v}
                       onClick={() => setVibe(v)}
-                      className={`py-2 px-3 rounded-xl text-sm font-medium transition-all border ${
-                        vibe === v 
-                          ? 'bg-primary-600/20 border-primary-500 text-white shadow-inner' 
-                          : 'bg-slate-900/50 border-white/5 text-slate-400 hover:border-white/20'
-                      }`}
+                      className={`py-2 px-3 rounded-xl text-sm font-medium transition-all border ${vibe === v
+                        ? 'bg-primary-600/20 border-primary-500 text-white shadow-inner'
+                        : 'bg-slate-900/50 border-white/5 text-slate-400 hover:border-white/20'
+                        }`}
                     >
                       {v}
                     </button>
                   ))}
-                  <select 
+                  <select
                     className="col-span-2 sm:col-span-3 bg-slate-900/50 border border-white/5 text-slate-300 rounded-xl py-2 px-3 outline-none focus:border-primary-500"
                     value={VIBES.includes(vibe) ? (VIBES.indexOf(vibe) < 6 ? '' : vibe) : vibe}
                     onChange={(e) => setVibe(e.target.value)}
@@ -151,15 +152,15 @@ export default function Tune() {
               <p className="text-slate-500 text-sm">Your tuned text will magically appear here.</p>
             </div>
           ) : (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               className="h-full"
             >
-              <ResultCard 
+              <ResultCard
                 originalText={originalText}
-                result={tunedText} 
-                vibe={vibe} 
+                result={tunedText}
+                vibe={vibe}
                 intensity={intensity}
                 imageUrl={imageUrl}
               />

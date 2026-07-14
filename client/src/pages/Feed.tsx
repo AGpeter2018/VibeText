@@ -5,7 +5,7 @@ import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { AuthModal } from '../components/AuthModal';
 import Avatar from 'boring-avatars';
-import { Sparkles, TrendingUp, Heart, Share2, Flame, Plus, Clock, MessageCircle, Copy, Check, Bookmark, Star } from 'lucide-react';
+import { Sparkles, TrendingUp, Heart, Share2, Flame, Plus, Clock, MessageCircle, Copy, Check, Bookmark, Star, Shield } from 'lucide-react';
 
 function timeAgo(dateInput: string) {
   const date = new Date(dateInput);
@@ -26,10 +26,13 @@ function timeAgo(dateInput: string) {
 export default function Feed() {
   const [posts, setPosts] = useState<any[]>([]);
   const [trendingPostsData, setTrendingPostsData] = useState<any[]>([]);
+  const [mostAuthenticPostsData, setMostAuthenticPostsData] = useState<any[]>([]);
+  const [weeklyVibe, setWeeklyVibe] = useState<any>(null);
+  const [ratingNotes, setRatingNotes] = useState<{ [key: string]: string }>({});
   const [trendingVibes, setTrendingVibes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { isAuthenticated, token } = useAuth();
-  
+
   // Helper to extract userId from JWT locally
   const currentUserId = useMemo(() => {
     if (!token) return null;
@@ -46,13 +49,17 @@ export default function Feed() {
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [isReplying, setIsReplying] = useState(false);
-  const [activeTab, setActiveTab] = useState<'recent' | 'trending' | 'for_you'>('recent');
+  const [activeTab, setActiveTab] = useState<'recent' | 'trending' | 'for_you' | 'most_authentic'>('recent');
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [copiedPostId, setCopiedPostId] = useState<string | null>(null);
 
   // Derive filtered and sorted posts
   const displayedPosts = useMemo(() => {
-    let result = activeTab === 'trending' ? [...trendingPostsData] : [...posts];
+    let result = activeTab === 'trending'
+      ? [...trendingPostsData]
+      : activeTab === 'most_authentic'
+        ? [...mostAuthenticPostsData]
+        : [...posts];
 
     // Filter by tag if selected
     if (activeTag) {
@@ -69,20 +76,24 @@ export default function Feed() {
     }
 
     return result;
-  }, [posts, trendingPostsData, activeTab, activeTag]);
+  }, [posts, trendingPostsData, mostAuthenticPostsData, activeTab, activeTag]);
 
   useEffect(() => {
     const fetchFeed = async () => {
       try {
-        const [feedRes, trendingVibesRes, trendingPostsRes] = await Promise.all([
+        const [feedRes, trendingVibesRes, trendingPostsRes, mostAuthenticRes, weeklyVibeRes] = await Promise.all([
           api.get('feed'),
           api.get('feed/trending'),
-          api.get('feed/trending-posts')
+          api.get('feed/trending-posts'),
+          api.get('feed/most-authentic'),
+          api.get('feed/weekly-vibe')
         ]);
         setPosts(feedRes.data);
         setTrendingVibes(trendingVibesRes.data);
         setTrendingPostsData(trendingPostsRes.data);
-        
+        setMostAuthenticPostsData(mostAuthenticRes.data);
+        setWeeklyVibe(weeklyVibeRes.data);
+
         if (currentUserId && isAuthenticated) {
           try {
             const savedRes = await api.get('user/saved');
@@ -111,7 +122,7 @@ export default function Feed() {
       setIsAuthOpen(true);
       return;
     }
-    
+
     // Optimistic UI update
     const isLiked = likedPosts.has(id);
     const newLiked = new Set(likedPosts);
@@ -164,9 +175,28 @@ export default function Feed() {
   const handleRatePost = async (id: string, score: number) => {
     if (!isAuthenticated) return setIsAuthOpen(true);
     try {
-      const res = await api.post(`feed/rate/${id}`, { score });
-      setPosts(posts.map(p => p._id === id ? { ...p, authenticityScore: res.data.authenticityScore } : p));
-      setTrendingPostsData(trendingPostsData.map(p => p._id === id ? { ...p, authenticityScore: res.data.authenticityScore } : p));
+      const note = ratingNotes[id] || '';
+      const res = await api.post(`feed/rate/${id}`, { score, note });
+
+      const updatePostList = (list: any[]) =>
+        list.map(p => {
+          if (p._id === id) {
+            const existsIdx = p.authenticityRatings?.findIndex((r: any) => r.userId?._id === currentUserId || r.userId === currentUserId);
+            let ratings = [...(p.authenticityRatings || [])];
+            if (existsIdx >= 0) {
+              ratings[existsIdx] = { ...ratings[existsIdx], score, note, userId: { _id: currentUserId, name: 'You' } };
+            } else {
+              ratings.push({ score, note, userId: { _id: currentUserId, name: 'You' } });
+            }
+            return { ...p, authenticityScore: res.data.authenticityScore, authenticityRatings: ratings };
+          }
+          return p;
+        });
+
+      setPosts(updatePostList(posts));
+      setTrendingPostsData(updatePostList(trendingPostsData));
+      setMostAuthenticPostsData(updatePostList(mostAuthenticPostsData));
+      setRatingNotes(prev => ({ ...prev, [id]: '' }));
     } catch (err) {
       console.error('Failed to rate', err);
     }
@@ -202,35 +232,45 @@ export default function Feed() {
     await navigator.clipboard.writeText(text);
     setCopiedPostId(id);
     setTimeout(() => setCopiedPostId(null), 2000);
+    try {
+      await api.post(`feed/copy/${id}`);
+      const updateCopies = (list: any[]) =>
+        list.map(p => p._id === id ? { ...p, copiesCount: (p.copiesCount || 0) + 1 } : p);
+      setPosts(updateCopies(posts));
+      setTrendingPostsData(updateCopies(trendingPostsData));
+      setMostAuthenticPostsData(updateCopies(mostAuthenticPostsData));
+    } catch (err) {
+      console.error('Failed to track copy', err);
+    }
   };
 
   const navItems = [
     { id: 'for_you', label: 'For You', icon: Sparkles, color: 'text-primary-400' },
     { id: 'trending', label: 'Trending', icon: TrendingUp, color: 'text-accent-400' },
+    { id: 'most_authentic', label: 'Most Authentic', icon: Shield, color: 'text-yellow-400' },
     { id: 'recent', label: 'Recent', icon: Clock, color: 'text-indigo-400' },
   ] as const;
 
   return (
     <div className="flex justify-center gap-8 max-w-7xl mx-auto w-full relative">
-      
+
       {/* Left Sidebar - Navigation / Filters */}
       <div className="hidden lg:block w-64 shrink-0 sticky top-24 h-[calc(100vh-6rem)]">
         <div className="glassmorphism rounded-3xl p-6 flex flex-col gap-6">
           <Link to="/tune" className="w-full bg-primary-600 hover:bg-primary-500 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary-500/20">
             <Plus size={20} /> New Vibe
           </Link>
-          
+
           <nav className="flex flex-col gap-2">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
               return (
-                <button 
+                <button
                   key={item.id}
                   onClick={() => { setActiveTab(item.id); setActiveTag(null); }}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${
-                    isActive ? 'text-white bg-white/10' : 'text-slate-400 hover:text-white hover:bg-white/5'
-                  }`}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors w-full text-left ${isActive ? 'text-white bg-white/10' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
                 >
                   <Icon size={20} className={isActive ? item.color : ''} /> {item.label}
                 </button>
@@ -242,14 +282,13 @@ export default function Feed() {
             <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 px-2">Popular Tags</h3>
             <div className="flex flex-wrap gap-2">
               {trendingVibes.map((trend) => (
-                <button 
-                  key={trend.title} 
+                <button
+                  key={trend.title}
                   onClick={() => { setActiveTag(activeTag === trend.title ? null : trend.title); setActiveTab('recent'); }}
-                  className={`text-xs px-3 py-1.5 rounded-lg transition-colors border ${
-                    activeTag === trend.title 
-                      ? 'bg-primary-600 border-primary-500 text-white shadow-md' 
-                      : 'bg-slate-800/50 hover:bg-slate-800 text-slate-300 border-white/5'
-                  }`}
+                  className={`text-xs px-3 py-1.5 rounded-lg transition-colors border ${activeTag === trend.title
+                    ? 'bg-primary-600 border-primary-500 text-white shadow-md'
+                    : 'bg-slate-800/50 hover:bg-slate-800 text-slate-300 border-white/5'
+                    }`}
                 >
                   #{trend.title}
                 </button>
@@ -261,7 +300,7 @@ export default function Feed() {
 
       {/* Main Feed Column */}
       <div className="flex-1 max-w-2xl w-full flex flex-col gap-6 pb-20">
-        
+
         {/* Mobile Tune Button */}
         <div className="lg:hidden w-full mb-2">
           <Link to="/tune" className="w-full bg-primary-600 hover:bg-primary-500 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary-500/20">
@@ -283,8 +322,8 @@ export default function Feed() {
         ) : (
           <AnimatePresence mode="popLayout">
             {displayedPosts.map((post, index) => (
-              <motion.div 
-                key={post._id} 
+              <motion.div
+                key={post._id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
@@ -319,19 +358,19 @@ export default function Feed() {
                     </span>
                   </div>
                 </div>
-                
+
                 {/* Image Content (if generated) */}
                 {post.imageUrl && (
                   <div className="w-full h-48 sm:h-64 mt-2 rounded-xl overflow-hidden border border-white/10 relative shrink-0">
-                    <img 
-                      src={post.imageUrl} 
-                      alt="Vibe AI Art" 
+                    <img
+                      src={post.imageUrl}
+                      alt="Vibe AI Art"
                       className="w-full h-full object-cover"
                       crossOrigin="anonymous"
                     />
                   </div>
                 )}
-                
+
                 {/* Content */}
                 <div className="flex flex-col gap-3">
                   <div className="text-slate-400 text-sm italic border-l-2 border-slate-700 pl-3">
@@ -341,32 +380,59 @@ export default function Feed() {
                     {post.tunedText}
                   </div>
                 </div>
-                
+
                 {/* Authenticity Rating UI */}
-                <div className="mt-2 pt-3 border-t border-white/5 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Authenticity:</span>
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map(star => (
-                        <button 
-                          key={star}
-                          onClick={() => handleRatePost(post._id, star)}
-                          className={`hover:scale-110 transition-transform ${post.authenticityScore >= star ? 'text-yellow-400' : 'text-slate-600 hover:text-yellow-400/50'}`}
-                        >
-                          <Star size={16} className={post.authenticityScore >= star ? 'fill-yellow-400' : ''} />
-                        </button>
-                      ))}
+                <div className="mt-2 pt-3 border-t border-white/5 flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Authenticity:</span>
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map(star => (
+                          <button
+                            key={star}
+                            onClick={() => handleRatePost(post._id, star)}
+                            className={`hover:scale-110 transition-transform ${post.authenticityScore >= star ? 'text-yellow-400' : 'text-slate-600 hover:text-yellow-400/50'}`}
+                          >
+                            <Star size={16} className={post.authenticityScore >= star ? 'fill-yellow-400' : ''} />
+                          </button>
+                        ))}
+                      </div>
+                      {post.authenticityScore > 0 && (
+                        <span className="text-xs text-slate-500 ml-1">({post.authenticityScore.toFixed(1)})</span>
+                      )}
                     </div>
-                    {post.authenticityScore > 0 && (
-                      <span className="text-xs text-slate-500 ml-1">({post.authenticityScore.toFixed(1)})</span>
-                    )}
+
+                    {/* Simple Note Input */}
+                    <input
+                      type="text"
+                      placeholder="Add explain note..."
+                      value={ratingNotes[post._id] || ''}
+                      onChange={(e) => setRatingNotes({ ...ratingNotes, [post._id]: e.target.value })}
+                      className="bg-slate-900/50 border border-white/10 rounded-xl px-3 py-1 text-xs text-white focus:outline-none focus:border-primary-500 w-44 transition-colors"
+                    />
                   </div>
+
+                  {/* Display existing community notes */}
+                  {post.authenticityRatings?.some((r: any) => r.note) && (
+                    <div className="pl-3 border-l-2 border-primary-500/30 flex flex-col gap-1.5 py-1 bg-white/[0.01] rounded-r-xl">
+                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">Community Explanation Notes</div>
+                      {post.authenticityRatings
+                        .filter((r: any) => r.note)
+                        .map((r: any, idx: number) => (
+                          <div key={idx} className="text-xs text-slate-350 italic flex items-center gap-1.5 flex-wrap">
+                            <span className="text-yellow-500/80 font-semibold">★{r.score}</span>
+                            <span>"{r.note}"</span>
+                            <span className="text-slate-500 text-[10px]">— {r.userId?.name || 'Viber'}</span>
+                          </div>
+                        ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Post Actions */}
                 <div className="pt-4 border-t border-white/5 flex items-center justify-between mt-2">
                   <div className="flex gap-6">
-                    <motion.button 
+                    <motion.button
                       whileTap={{ scale: 0.9 }}
                       onClick={() => handleUpvote(post._id)}
                       className={`flex items-center gap-2 font-semibold transition-colors ${likedPosts.has(post._id) ? 'text-accent-400' : 'text-slate-400 hover:text-accent-400'}`}
@@ -374,7 +440,7 @@ export default function Feed() {
                       <Heart size={20} className={likedPosts.has(post._id) ? 'fill-accent-400' : ''} />
                       <span>{post.upvotes}</span>
                     </motion.button>
-                    <button 
+                    <button
                       onClick={() => setActiveReplyId(activeReplyId === post._id ? null : post._id)}
                       className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors font-semibold"
                     >
@@ -383,23 +449,23 @@ export default function Feed() {
                     </button>
                   </div>
                   <div className="flex gap-2">
-                    <button 
+                    <button
                       onClick={() => handleSavePost(post._id)}
                       className={`transition-colors p-2 rounded-full hover:bg-white/5 ${savedPosts.has(post._id) ? 'text-primary-400' : 'text-slate-400 hover:text-white'}`}
                       title="Save Vibe"
                     >
                       <Bookmark size={18} className={savedPosts.has(post._id) ? 'fill-primary-400' : ''} />
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleCopyText(post._id, post.tunedText)}
                       className="text-slate-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/5"
                       title="Copy Vibe"
                     >
                       {copiedPostId === post._id ? <Check size={18} className="text-green-400" /> : <Copy size={18} />}
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleSharePost(post._id)}
-                      className="text-slate-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/5" 
+                      className="text-slate-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/5"
                       title="Share Vibe"
                     >
                       <Share2 size={18} />
@@ -435,7 +501,7 @@ export default function Feed() {
                     {/* Inline Reply Input */}
                     <AnimatePresence>
                       {activeReplyId === post._id && (
-                        <motion.div 
+                        <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
                           exit={{ opacity: 0, height: 0 }}
@@ -451,7 +517,7 @@ export default function Feed() {
                               className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-primary-500 transition-colors"
                               onKeyDown={(e) => e.key === 'Enter' && handleReplySubmit(post._id)}
                             />
-                            <button 
+                            <button
                               onClick={() => handleReplySubmit(post._id)}
                               disabled={isReplying || !replyText.trim()}
                               className="bg-primary-600 hover:bg-primary-500 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
@@ -477,7 +543,7 @@ export default function Feed() {
             <Flame size={20} className="text-orange-500" />
             <h3 className="font-bold text-white text-lg">Trending Vibes</h3>
           </div>
-          
+
           <div className="flex flex-col gap-4">
             {trendingVibes.length > 0 ? (
               trendingVibes.map((trend, i) => (
@@ -495,11 +561,38 @@ export default function Feed() {
           </div>
         </div>
 
+        {/* Weekly Vibe Drop Card */}
+        {weeklyVibe && (
+          <div className="glassmorphism rounded-3xl p-6 mb-6 bg-gradient-to-br from-indigo-900/40 to-transparent border border-indigo-500/20 relative group overflow-hidden">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-3xl blur opacity-10 group-hover:opacity-20 transition duration-1000" />
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-4">
+                <Sparkles size={18} className="text-indigo-400" />
+                <h3 className="font-bold text-white text-md">Weekly Vibe Drop</h3>
+              </div>
+              <div className="flex flex-col gap-3">
+                <div>
+                  <span className="text-xs font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+                    #{weeklyVibe.vibeName}
+                  </span>
+                </div>
+                <p className="text-slate-300 text-xs leading-relaxed">{weeklyVibe.description}</p>
+                <Link
+                  to={`/tune?vibe=${encodeURIComponent(weeklyVibe.vibeName)}`}
+                  className="mt-1 text-center bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-all shadow-md shadow-indigo-600/20 block"
+                >
+                  Tune this Vibe Drop
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="glassmorphism rounded-3xl p-6 bg-gradient-to-br from-primary-900/40 to-transparent border border-primary-500/20">
           <h3 className="font-bold text-white mb-2">Join the Movement</h3>
           <p className="text-slate-400 text-sm mb-4">Sign in to publish your creations, upvote your favorites, and build your vibe profile.</p>
           {!isAuthenticated && (
-            <button 
+            <button
               onClick={() => setIsAuthOpen(true)}
               className="w-full bg-white text-slate-900 font-bold py-2 rounded-xl hover:bg-slate-200 transition-colors"
             >

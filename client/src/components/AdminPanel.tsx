@@ -1,4 +1,4 @@
-import { Activity, Settings, Banknote, ShieldAlert, Sparkles, LayoutDashboard } from 'lucide-react';
+import { Activity, Settings, Banknote, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 
 export function AdminPanel() {
@@ -8,7 +8,7 @@ export function AdminPanel() {
 
   return (
     <div className="w-full max-w-4xl flex flex-col gap-8 p-6">
-      
+
       {/* Header */}
       <div>
         <h2 className="text-3xl font-bold text-white flex items-center gap-3">
@@ -19,7 +19,7 @@ export function AdminPanel() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
+
         {/* Treasury Card */}
         <div className="glassmorphism p-6 rounded-3xl border-white/5 flex flex-col gap-6">
           <div className="flex items-center gap-3 text-lg font-medium text-slate-200">
@@ -54,15 +54,15 @@ export function AdminPanel() {
             <div className="p-2 rounded-xl bg-white/5"><Settings size={20} className="text-primary-400" /></div>
             Pricing Engine
           </div>
-          
+
           <div className="flex gap-4">
             <div className="relative flex-1">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">ETH</span>
-              <input 
-                type="number" 
+              <input
+                type="number"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                className="input-glass w-full rounded-xl p-3 pl-14 text-slate-100" 
+                className="input-glass w-full rounded-xl p-3 pl-14 text-slate-100"
               />
             </div>
             <button className="px-8 py-3 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-medium shadow-lg shadow-primary-500/20 transition-colors">

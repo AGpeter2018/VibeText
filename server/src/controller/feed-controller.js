@@ -1,5 +1,6 @@
 import Post from '../models/Post.js';
 import User from '../models/User.js';
+import WeeklyVibe from '../models/WeeklyVibe.js';
 
 export const getTrendingVibes = async (req, res) => {
     try {
@@ -8,13 +9,13 @@ export const getTrendingVibes = async (req, res) => {
             { $sort: { count: -1 } },
             { $limit: 5 }
         ]);
-        
+
         // Format to match frontend expectations
         const formatted = trending.map(t => ({
             title: t._id,
             posts: t.count >= 1000 ? (t.count / 1000).toFixed(1) + 'k' : t.count.toString()
         }));
-        
+
         res.status(200).json(formatted);
     } catch (error) {
         console.error('Error fetching trending vibes:', error);
@@ -27,6 +28,7 @@ export const getFeed = async (req, res) => {
         const posts = await Post.find()
             .populate('authorId', 'name picture')
             .populate('replies.authorId', 'name picture')
+            .populate('authenticityRatings.userId', 'name picture')
             .sort({ createdAt: -1 })
             .limit(50)
             .lean();
@@ -59,6 +61,7 @@ export const getTrendingPosts = async (req, res) => {
 
         await Post.populate(posts, { path: 'authorId', select: 'name picture' });
         await Post.populate(posts, { path: 'replies.authorId', select: 'name picture' });
+        await Post.populate(posts, { path: 'authenticityRatings.userId', select: 'name picture' });
 
         res.status(200).json(posts);
     } catch (error) {
@@ -132,7 +135,7 @@ export const replyToPost = async (req, res) => {
         });
 
         await post.save();
-        
+
         // Re-fetch post with populated author info to return the created reply cleanly
         const updatedPost = await Post.findById(req.params.id)
             .populate('replies.authorId', 'name picture')
@@ -159,7 +162,7 @@ export const ratePost = async (req, res) => {
 
         // Check if user already rated
         const existingRatingIndex = post.authenticityRatings.findIndex(r => r.userId.toString() === req.userId);
-        
+
         if (existingRatingIndex >= 0) {
             // Update existing rating
             post.authenticityRatings[existingRatingIndex].score = score;
@@ -194,7 +197,7 @@ export const savePost = async (req, res) => {
         if (!user) return res.status(404).json({ error: 'User not found' });
 
         const isSaved = user.savedPosts.includes(post._id);
-        
+
         if (isSaved) {
             user.savedPosts = user.savedPosts.filter(id => id.toString() !== post._id.toString());
             post.savesCount = Math.max(0, post.savesCount - 1);
@@ -225,3 +228,56 @@ export const sharePost = async (req, res) => {
         res.status(500).json({ error: 'Failed to share post' });
     }
 };
+
+export const getMostAuthenticPosts = async (req, res) => {
+    try {
+        const posts = await Post.find({ authenticityScore: { $gt: 0 } })
+            .populate('authorId', 'name picture')
+            .populate('replies.authorId', 'name picture')
+            .populate('authenticityRatings.userId', 'name picture')
+            .sort({ authenticityScore: -1, createdAt: -1 })
+            .limit(20)
+            .lean();
+
+        res.status(200).json(posts);
+    } catch (error) {
+        console.error('Error fetching most authentic posts:', error);
+        res.status(500).json({ error: 'Failed to fetch most authentic posts' });
+    }
+};
+
+export const getCurrentWeeklyVibe = async (req, res) => {
+    try {
+        const now = new Date();
+        const weeklyVibe = await WeeklyVibe.findOne({
+            weekStart: { $lte: now },
+            weekEnd: { $gte: now },
+            isFeatured: true
+        }).sort({ createdAt: -1 }).lean();
+
+        if (!weeklyVibe) {
+            return res.status(200).json(null);
+        }
+
+        res.status(200).json(weeklyVibe);
+    } catch (error) {
+        console.error('Error fetching weekly vibe:', error);
+        res.status(500).json({ error: 'Failed to fetch weekly vibe' });
+    }
+};
+
+export const copyPost = async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id);
+        if (!post) return res.status(404).json({ error: 'Post not found' });
+
+        post.copiesCount = (post.copiesCount || 0) + 1;
+        await post.save();
+
+        res.status(200).json({ copiesCount: post.copiesCount });
+    } catch (error) {
+        console.error('Error copying post:', error);
+        res.status(500).json({ error: 'Failed to track copy action' });
+    }
+};
+

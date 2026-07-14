@@ -1,15 +1,18 @@
 import express from 'express';
 import { requireAuth } from '../middleware/requireAuth.js';
-import { 
-    getTrendingVibes, 
-    getFeed, 
-    publishPost, 
-    upvotePost, 
+import {
+    getTrendingVibes,
+    getFeed,
+    publishPost,
+    upvotePost,
     replyToPost,
     ratePost,
     savePost,
     sharePost,
-    getTrendingPosts
+    getTrendingPosts,
+    getMostAuthenticPosts,
+    getCurrentWeeklyVibe,
+    copyPost
 } from '../controller/feed-controller.js';
 
 const router = express.Router();
@@ -19,6 +22,12 @@ router.get('/trending', getTrendingVibes);
 
 // GET /api/feed/trending-posts — public, returns top trending posts
 router.get('/trending-posts', getTrendingPosts);
+
+// GET /api/feed/most-authentic — public, returns posts sorted by authenticity
+router.get('/most-authentic', getMostAuthenticPosts);
+
+// GET /api/feed/weekly-vibe — public, returns current weekly vibe drop
+router.get('/weekly-vibe', getCurrentWeeklyVibe);
 
 // GET /api/feed — public, returns all posts sorted by newest first
 router.get('/', getFeed);
@@ -41,4 +50,8 @@ router.post('/save/:id', requireAuth, savePost);
 // POST /api/feed/share/:id — requires auth
 router.post('/share/:id', requireAuth, sharePost);
 
+// POST /api/feed/copy/:id — public / no auth required to copy
+router.post('/copy/:id', copyPost);
+
 export default router;
+
