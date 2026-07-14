@@ -1,7 +1,11 @@
-import { createPortal } from 'react-dom';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { X, LogOut, Zap, Radio, Store, LayoutDashboard, Home } from 'lucide-react';
+import { useState } from 'react';
+import { AuthModal } from './AuthModal';
+import {
+  Radio, Zap, Store, LayoutDashboard, Home,
+  LogOut, LogIn, ChevronRight,
+} from 'lucide-react';
 
 const NAV_LINKS = [
   { to: '/', label: 'Home', icon: Home },
@@ -14,137 +18,147 @@ const NAV_LINKS = [
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
-  onSignIn: () => void;
 }
 
-export function Sidebar({ isOpen, onClose, onSignIn }: SidebarProps) {
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, isAuthenticated, logout } = useAuth();
+  const location = useLocation();
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+
+  const visibleLinks = NAV_LINKS.filter(l => !l.authOnly || isAuthenticated);
 
   const handleLogout = () => {
     onClose();
     logout();
   };
 
-  const visibleLinks = NAV_LINKS.filter(l => !l.authOnly || isAuthenticated);
+  const isActive = (path: string) =>
+    path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
 
-  return createPortal(
+  return (
     <>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 998,
-          background: 'rgba(0,0,0,0.65)',
-          backdropFilter: 'blur(4px)',
-          opacity: isOpen ? 1 : 0,
-          pointerEvents: isOpen ? 'auto' : 'none',
-          transition: 'opacity 0.25s ease',
-        }}
-      />
+      {/* Mobile overlay backdrop */}
+      {isOpen && (
+        <div
+          onClick={onClose}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 40,
+            background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(3px)',
+          }}
+        />
+      )}
 
       {/* Sidebar panel */}
-      <div
+      <aside
         style={{
           position: 'fixed',
           top: 0,
-          right: 0,
-          height: '100%',
-          width: '280px',
-          zIndex: 999,
-          background: '#0f172a',
-          borderLeft: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: '-8px 0 40px rgba(0,0,0,0.5)',
+          left: 0,
+          height: '100vh',
+          width: 240,
+          zIndex: 50,
+          background: '#080f1e',
+          borderRight: '1px solid rgba(255,255,255,0.06)',
           display: 'flex',
           flexDirection: 'column',
-          transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
-          transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          // Desktop: always visible. Mobile: slide in/out
+          transform: isOpen ? 'translateX(0)' : undefined,
         }}
+        className={`
+          transition-transform duration-300 ease-in-out
+          -translate-x-full lg:translate-x-0
+          ${isOpen ? '!translate-x-0' : ''}
+        `}
       >
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', height: '64px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #7c3aed, #06b6d4)', padding: 1 }}>
-              <div style={{ width: '100%', height: '100%', background: '#0f172a', borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontWeight: 700, fontSize: 14, background: 'linear-gradient(to right, #a78bfa, #22d3ee)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>V</span>
+        {/* Brand Header */}
+        <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+          <Link to="/" onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #7c3aed, #06b6d4)', padding: 1, flexShrink: 0 }}>
+              <div style={{ width: '100%', height: '100%', background: '#080f1e', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontWeight: 800, fontSize: 16, background: 'linear-gradient(to right, #a78bfa, #22d3ee)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>V</span>
               </div>
             </div>
-            <span style={{ color: '#fff', fontWeight: 600, fontSize: 14 }}>VibeText</span>
-          </div>
-          <button
-            onClick={onClose}
-            aria-label="Close menu"
-            style={{ color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', padding: '6px', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <X size={20} />
-          </button>
+            <div>
+              <p style={{ margin: 0, color: '#fff', fontWeight: 700, fontSize: 16, lineHeight: 1 }}>VibeText</p>
+              <p style={{ margin: 0, color: '#475569', fontSize: 10, letterSpacing: '0.05em', marginTop: 2 }}>AI Text Engine</p>
+            </div>
+          </Link>
         </div>
 
-        {/* User strip */}
-        {isAuthenticated && user && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.03)' }}>
-            {user.picture ? (
-              <img src={user.picture} alt={user.name} style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid #334155' }} />
-            ) : (
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff', border: '2px solid #334155' }}>
-                {user.name.charAt(0)}
-              </div>
-            )}
-            <div style={{ flex: 1, overflow: 'hidden' }}>
-              <p style={{ margin: 0, color: '#fff', fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</p>
-              <p style={{ margin: 0, color: '#64748b', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Nav links */}
-        <nav style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
-          {visibleLinks.map(({ to, label, icon: Icon }) => (
-            <Link
-              key={to}
-              to={to}
-              onClick={onClose}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                padding: '12px 16px',
-                borderRadius: 12,
-                color: '#cbd5e1',
-                textDecoration: 'none',
-                fontWeight: 500,
-                fontSize: 14,
-                marginBottom: 4,
-              }}
-            >
-              <Icon size={18} color="#a78bfa" strokeWidth={2} />
-              {label}
-            </Link>
-          ))}
+        {/* Nav Links */}
+        <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 10px' }}>
+          <p style={{ margin: '0 0 8px 10px', color: '#334155', fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Navigation</p>
+          {visibleLinks.map(({ to, label, icon: Icon }) => {
+            const active = isActive(to);
+            return (
+              <Link
+                key={to}
+                to={to}
+                onClick={onClose}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '9px 12px',
+                  borderRadius: 10,
+                  textDecoration: 'none',
+                  fontWeight: 500,
+                  fontSize: 13.5,
+                  marginBottom: 2,
+                  color: active ? '#fff' : '#94a3b8',
+                  background: active ? 'rgba(124,58,237,0.18)' : 'transparent',
+                  border: active ? '1px solid rgba(124,58,237,0.25)' : '1px solid transparent',
+                  transition: 'all 0.15s',
+                  position: 'relative',
+                }}
+              >
+                <Icon size={17} color={active ? '#a78bfa' : '#475569'} strokeWidth={active ? 2.5 : 2} />
+                <span style={{ flex: 1 }}>{label}</span>
+                {active && <ChevronRight size={14} color="#7c3aed" />}
+              </Link>
+            );
+          })}
         </nav>
 
-        {/* Footer */}
-        <div style={{ padding: '12px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          {isAuthenticated ? (
-            <button
-              onClick={handleLogout}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 12, background: 'transparent', border: 'none', cursor: 'pointer', color: '#f87171', fontWeight: 600, fontSize: 14 }}
-            >
-              <LogOut size={18} />
-              Sign Out
-            </button>
+        {/* User Section */}
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '12px 10px' }}>
+          {isAuthenticated && user ? (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', marginBottom: 6 }}>
+                {user.picture ? (
+                  <img src={user.picture} alt={user.name} style={{ width: 32, height: 32, borderRadius: '50%', border: '2px solid #1e293b', flexShrink: 0 }} />
+                ) : (
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff', fontSize: 12, border: '2px solid #334155', flexShrink: 0 }}>
+                    {user.name.charAt(0)}
+                  </div>
+                )}
+                <div style={{ flex: 1, overflow: 'hidden' }}>
+                  <p style={{ margin: 0, color: '#e2e8f0', fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</p>
+                  <p style={{ margin: 0, color: '#475569', fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</p>
+                </div>
+              </div>
+              <button
+                onClick={handleLogout}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10, background: 'transparent', border: 'none', cursor: 'pointer', color: '#f87171', fontWeight: 500, fontSize: 13 }}
+              >
+                <LogOut size={15} />
+                Sign Out
+              </button>
+            </>
           ) : (
             <button
-              onClick={() => { onClose(); onSignIn(); }}
-              style={{ width: '100%', padding: '12px', background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', border: 'none', borderRadius: 12, color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+              onClick={() => { onClose(); setIsAuthOpen(true); }}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', border: 'none', cursor: 'pointer', color: '#fff', fontWeight: 600, fontSize: 13, justifyContent: 'center' }}
             >
+              <LogIn size={15} />
               Sign In
             </button>
           )}
         </div>
-      </div>
-    </>,
-    document.body
+      </aside>
+
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+    </>
   );
 }
