@@ -21,7 +21,7 @@ export function ResultCard({ result, originalText, vibe, intensity, imageUrl }: 
   const [isPublishing, setIsPublishing] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isTypingDone, setIsTypingDone] = useState(false);
-  
+
   const cardRef = useRef<HTMLDivElement>(null);
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -63,16 +63,29 @@ export function ResultCard({ result, originalText, vibe, intensity, imageUrl }: 
     setIsGeneratingImage(true);
     try {
       const dataUrl = await toPng(cardRef.current, { backgroundColor: '#020617', cacheBust: true });
-      const link = document.createElement('a');
-      link.href = dataUrl;
       const cleanVibe = vibe.replace(/\s+/g, '-');
-      link.download = `VibeText-${cleanVibe}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+
+      const blob = await fetch(dataUrl).then(res => res.blob());
+      const file = new File([blob], `VibeText-${cleanVibe}.png`, { type: 'image/png' });
+
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `VibeText — #${vibe} Vibe`,
+          text: `Check out my text tuned in the '${vibe}' style on VibeText!`,
+        });
+      } else {
+        // Fallback: download dynamically
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = `VibeText-${cleanVibe}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
     } catch (err: any) {
-      console.error("Failed to generate image", err);
-      alert("Failed to generate image: " + (err.message || err));
+      console.error("Failed to share/generate image", err);
+      alert("Failed to share or generate image: " + (err.message || err));
     } finally {
       setIsGeneratingImage(false);
     }
@@ -83,7 +96,7 @@ export function ResultCard({ result, originalText, vibe, intensity, imageUrl }: 
       setIsAuthOpen(true);
       return;
     }
-    
+
     setIsPublishing(true);
     try {
       await api.post('feed/publish', {
@@ -114,16 +127,16 @@ export function ResultCard({ result, originalText, vibe, intensity, imageUrl }: 
             className="w-full max-w-2xl mx-auto mt-8 relative group"
           >
             <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-500 to-accent-500 rounded-3xl blur opacity-30 group-hover:opacity-50 transition duration-1000" />
-            
+
             <div className="relative glassmorphism rounded-3xl p-6 sm:p-8 flex flex-col gap-4">
-              
+
               <div ref={cardRef} className="bg-slate-950 p-6 rounded-2xl border border-white/5 flex flex-col">
-                
+
                 {imageUrl && (
                   <div className="w-full h-48 sm:h-64 mb-6 rounded-xl overflow-hidden border border-white/10 relative shrink-0">
-                    <img 
-                      src={imageUrl} 
-                      alt="Vibe AI Art" 
+                    <img
+                      src={imageUrl}
+                      alt="Vibe AI Art"
                       className="w-full h-full object-cover"
                       crossOrigin="anonymous"
                     />
@@ -153,25 +166,25 @@ export function ResultCard({ result, originalText, vibe, intensity, imageUrl }: 
 
               <div className="flex flex-wrap justify-between items-center gap-4 mt-2">
                 <div className="flex gap-2">
-                    <button 
-                      onClick={handleCopy}
-                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-slate-300 hover:text-white text-sm font-medium transition-all"
-                    >
-                      {copied ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
-                      {copied ? <span className="text-green-400">Copied</span> : <span>Copy</span>}
-                    </button>
-                    
-                    <button 
-                      onClick={handleShareImage}
-                      disabled={isGeneratingImage || !isTypingDone}
-                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-slate-300 hover:text-white text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isGeneratingImage ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Share2 size={16} />}
-                      {isGeneratingImage ? 'Generating...' : 'Share Image'}
-                    </button>
+                  <button
+                    onClick={handleCopy}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-slate-300 hover:text-white text-sm font-medium transition-all"
+                  >
+                    {copied ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
+                    {copied ? <span className="text-green-400">Copied</span> : <span>Copy</span>}
+                  </button>
+
+                  <button
+                    onClick={handleShareImage}
+                    disabled={isGeneratingImage || !isTypingDone}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-slate-300 hover:text-white text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isGeneratingImage ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Share2 size={16} />}
+                    {isGeneratingImage ? 'Generating...' : 'Share Image'}
+                  </button>
                 </div>
 
-                <button 
+                <button
                   onClick={handlePublish}
                   disabled={isPublishing || !isTypingDone}
                   className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-medium transition-all shadow-lg shadow-primary-500/20 disabled:opacity-50 disabled:cursor-not-allowed"

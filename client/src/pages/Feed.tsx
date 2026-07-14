@@ -161,14 +161,28 @@ export default function Feed() {
     }
   };
 
-  const handleSharePost = async (id: string) => {
+  const handleSharePost = async (post: any) => {
+    const shareData = {
+      title: `VibeText — #${post.vibe} Vibe`,
+      text: `"${post.tunedText}"\n\n— Tuned to '${post.vibe}' style on VibeText`,
+      url: `${window.location.origin}/tune?vibe=${encodeURIComponent(post.vibe)}`,
+    };
+
     try {
-      await api.post(`feed/share/${id}`);
-      // Usually would open a share dialog or copy link here
-      // For now, we just increment the share count in DB
-      alert('Thanks for sharing!');
-    } catch {
-      // ignore
+      // Record share count in DB
+      await api.post(`feed/share/${post._id}`);
+
+      // Optimistically update the UI post sharesCount
+      setPosts(prev => prev.map(p => p._id === post._id ? { ...p, sharesCount: (p.sharesCount || 0) + 1 } : p));
+
+      if (navigator.share && navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(`${shareData.text}\n${shareData.url}`);
+        alert('Vibe text and link copied to clipboard!');
+      }
+    } catch (err: any) {
+      console.error('[Share] share error:', err);
     }
   };
 
@@ -464,11 +478,12 @@ export default function Feed() {
                       {copiedPostId === post._id ? <Check size={18} className="text-green-400" /> : <Copy size={18} />}
                     </button>
                     <button
-                      onClick={() => handleSharePost(post._id)}
-                      className="text-slate-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/5"
+                      onClick={() => handleSharePost(post)}
+                      className="text-slate-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/5 flex items-center gap-1.5"
                       title="Share Vibe"
                     >
                       <Share2 size={18} />
+                      {post.sharesCount > 0 && <span className="text-xs font-semibold">{post.sharesCount}</span>}
                     </button>
                   </div>
                 </div>
