@@ -50,7 +50,7 @@ export default function Landing() {
       <section className="w-full max-w-7xl mx-auto text-center px-4 pt-20 pb-28 relative">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary-600/20 blur-[120px] rounded-full pointer-events-none" />
 
-        <motion.div initial="hidden" animate="visible" variants={containerVariants} className="relative z-10">
+        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={containerVariants} className="relative z-10">
           <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/50 border border-slate-700/50 text-slate-300 font-medium text-sm mb-8 backdrop-blur-md shadow-xl">
             <Sparkles size={16} className="text-primary-400" />
             <span>VibeText Protocol v2.5 is Live: Marketplace & Authenticity Engine</span>

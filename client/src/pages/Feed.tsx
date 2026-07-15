@@ -333,6 +333,29 @@ export default function Feed() {
           </Link>
         </div>
 
+        {/* Mobile Feed Navigation (Only visible < lg) */}
+        <div className="lg:hidden w-full overflow-x-auto pb-2 no-scrollbar -mx-4 px-4">
+          <div className="flex gap-2 min-w-max">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => { setActiveTab(item.id); setActiveTag(null); }}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold transition-all ${isActive
+                      ? 'bg-white/10 text-white shadow-sm border border-white/10'
+                      : 'bg-slate-900/40 text-slate-400 border border-transparent hover:bg-slate-800'
+                    }`}
+                >
+                  <Icon size={16} className={isActive ? item.color : ''} />
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Mobile Trending & Weekly Drop (Only visible < xl) */}
         <div className="xl:hidden w-full flex flex-col gap-3 mb-2 overflow-hidden">
           <div className="flex items-center gap-2 px-1">

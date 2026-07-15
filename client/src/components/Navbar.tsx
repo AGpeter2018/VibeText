@@ -59,9 +59,8 @@ export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }
   return (
     <>
       <header
-        className={`fixed top-0 right-0 z-30 h-14 flex items-center px-4 pr-5 gap-3 border-b border-white/5 transition-all duration-300 ${
-          showSidebar ? 'left-0 lg:left-[240px]' : 'left-0'
-        }`}
+        className={`fixed top-0 right-0 z-30 h-14 flex items-center px-4 pr-5 gap-3 border-b border-white/5 transition-all duration-300 ${showSidebar ? 'left-0 lg:left-[240px]' : 'left-0'
+          }`}
         style={{
           backdropFilter: 'blur(18px)',
           WebkitBackdropFilter: 'blur(18px)',
@@ -138,20 +137,22 @@ export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }
               </button>
             </form>
 
-            {/* Mobile search icon */}
-            <button
-              onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className="sm:hidden"
-              style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 4 }}
-            >
-              <Search size={18} />
-            </button>
+
 
             {/* Spacer */}
             <div style={{ flex: 1 }} />
 
             {/* Right actions */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+
+              {/* Mobile search icon */}
+              <button
+                onClick={() => setIsSearchOpen(!isSearchOpen)}
+                className="sm:hidden"
+                style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 8 }}
+              >
+                <Search size={18} />
+              </button>
 
               {/* ⚡ Quick "New Vibe" CTA */}
               <Link
@@ -295,7 +296,7 @@ export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }
         ) : (
           <>
             {/* Landing UI: Brand Logo + Marketing Links */}
-            
+
             {/* Brand Logo on the left for Marketing nav */}
             <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', marginLeft: '4px' }}>
               <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg, #7c3aed, #06b6d4)', padding: 1, flexShrink: 0 }}>
@@ -308,34 +309,34 @@ export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }
 
             {/* Spacer */}
             <div style={{ flex: 1 }} />
-            
+
             <div className="hidden md:flex items-center gap-8 mr-4">
               <Link to="/feed" className="text-slate-300 hover:text-white font-medium transition-colors text-sm">Vibe Wall</Link>
               <Link to="/tune" className="text-slate-300 hover:text-white font-medium transition-colors text-sm">Studio</Link>
               <Link to="/requests" className="text-slate-300 hover:text-white font-medium transition-colors text-sm">Marketplace</Link>
             </div>
-            
+
             {!isAuthenticated ? (
-               <button
-                 onClick={() => setIsAuthOpen(true)}
-                 style={{
-                   padding: '7px 18px', background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
-                   border: 'none', borderRadius: 50, color: '#fff', fontWeight: 600, fontSize: 13,
-                   cursor: 'pointer', boxShadow: '0 4px 14px rgba(124,58,237,0.35)',
-                   whiteSpace: 'nowrap'
-                 }}
-               >
-                 Sign In
-               </button>
+              <button
+                onClick={() => setIsAuthOpen(true)}
+                style={{
+                  padding: '7px 18px', background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+                  border: 'none', borderRadius: 50, color: '#fff', fontWeight: 600, fontSize: 13,
+                  cursor: 'pointer', boxShadow: '0 4px 14px rgba(124,58,237,0.35)',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                Sign In
+              </button>
             ) : (
-               <Link to="/dashboard" style={{
-                 padding: '7px 18px', background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
-                 border: 'none', borderRadius: 50, color: '#fff', fontWeight: 600, fontSize: 13,
-                 cursor: 'pointer', boxShadow: '0 4px 14px rgba(124,58,237,0.35)', textDecoration: 'none',
-                 whiteSpace: 'nowrap'
-               }}>
-                 Dashboard
-               </Link>
+              <Link to="/dashboard" style={{
+                padding: '7px 18px', background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+                border: 'none', borderRadius: 50, color: '#fff', fontWeight: 600, fontSize: 13,
+                cursor: 'pointer', boxShadow: '0 4px 14px rgba(124,58,237,0.35)', textDecoration: 'none',
+                whiteSpace: 'nowrap'
+              }}>
+                Dashboard
+              </Link>
             )}
           </>
         )}
