@@ -277,7 +277,7 @@ export default function Feed() {
   ] as const;
 
   return (
-    <div className="flex justify-center gap-8 max-w-7xl mx-auto w-full relative">
+    <div className="flex items-start justify-center gap-8 max-w-7xl mx-auto w-full relative">
 
       {/* Left Sidebar - Navigation / Filters */}
       <div className="hidden lg:block w-64 shrink-0 sticky top-24 h-[calc(100vh-6rem)]">
@@ -344,8 +344,8 @@ export default function Feed() {
                   key={item.id}
                   onClick={() => { setActiveTab(item.id); setActiveTag(null); }}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold transition-all ${isActive
-                      ? 'bg-white/10 text-white shadow-sm border border-white/10'
-                      : 'bg-slate-900/40 text-slate-400 border border-transparent hover:bg-slate-800'
+                    ? 'bg-white/10 text-white shadow-sm border border-white/10'
+                    : 'bg-slate-900/40 text-slate-400 border border-transparent hover:bg-slate-800'
                     }`}
                 >
                   <Icon size={16} className={isActive ? item.color : ''} />
