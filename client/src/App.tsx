@@ -28,7 +28,7 @@ function App() {
       )}
 
       {/* Top navbar */}
-      <Navbar onOpenSidebar={() => setIsSidebarOpen(true)} showSidebar={showSidebar} />
+      <Navbar onOpenSidebar={() => setIsSidebarOpen(true)} showSidebar={showSidebar} isLanding={!showSidebar} />
 
       {/* Main content — shifts right on large screens when sidebar is visible */}
       <main
