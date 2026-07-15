@@ -18,9 +18,10 @@ const NAV_LINKS = [
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  isLanding?: boolean;
 }
 
-export function Sidebar({ isOpen, onClose }: SidebarProps) {
+export function Sidebar({ isOpen, onClose, isLanding = false }: SidebarProps) {
   const { user, isAuthenticated, logout } = useAuth();
   const location = useLocation();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -62,12 +63,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           borderRight: '1px solid rgba(255,255,255,0.06)',
           display: 'flex',
           flexDirection: 'column',
-          // Desktop: always visible. Mobile: slide in/out
+          // Mobile: slide in/out. Desktop App: always visible
           transform: isOpen ? 'translateX(0)' : undefined,
         }}
         className={`
           transition-transform duration-300 ease-in-out
-          -translate-x-full lg:translate-x-0
+          -translate-x-full ${!isLanding ? 'lg:translate-x-0' : ''}
           ${isOpen ? '!translate-x-0' : ''}
         `}
       >
