@@ -333,6 +333,47 @@ export default function Feed() {
           </Link>
         </div>
 
+        {/* Mobile Trending & Weekly Drop (Only visible < xl) */}
+        <div className="xl:hidden w-full flex flex-col gap-3 mb-2 overflow-hidden">
+          <div className="flex items-center gap-2 px-1">
+            <Flame size={16} className="text-orange-500" />
+            <h3 className="font-bold text-slate-300 text-sm">Trending & Events</h3>
+          </div>
+          <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 snap-x">
+            {/* Mobile Weekly Vibe Drop */}
+            {weeklyVibe && (
+              <div className="shrink-0 w-64 glassmorphism rounded-2xl p-4 bg-gradient-to-br from-indigo-900/40 to-transparent border border-indigo-500/20 relative snap-center">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles size={14} className="text-indigo-400" />
+                  <h3 className="font-bold text-white text-xs">Weekly Drop</h3>
+                </div>
+                <span className="text-xs font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 mb-2 inline-block">
+                  #{weeklyVibe.vibeName}
+                </span>
+                <Link
+                  to={`/tune?vibe=${encodeURIComponent(weeklyVibe.vibeName)}`}
+                  className="mt-1 text-center bg-indigo-600/80 hover:bg-indigo-500 text-white font-bold py-1.5 px-3 rounded-lg text-xs block"
+                >
+                  Tune This
+                </Link>
+              </div>
+            )}
+
+            {/* Mobile Trending Items */}
+            {trendingVibes.slice(0, 4).map((trend, i) => (
+              <div key={i} className="shrink-0 w-48 glassmorphism rounded-2xl p-4 flex flex-col justify-between border border-white/5 snap-center" onClick={() => { setActiveTag(trend.title); setActiveTab('recent'); }}>
+                <div>
+                  <p className="text-slate-500 text-[10px] mb-1">Trending #{i + 1}</p>
+                  <p className="text-white font-semibold text-sm truncate">#{trend.title}</p>
+                </div>
+                <span className="text-[10px] font-medium bg-white/5 px-2 py-1 rounded text-slate-400 self-start mt-2">
+                  {trend.posts} vibes
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Search results banner */}
         {searchQuery && (
           <div className="flex items-center justify-between px-4 py-2.5 glassmorphism rounded-2xl border border-primary-500/20">
