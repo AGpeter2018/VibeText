@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -52,6 +52,8 @@ export default function Feed() {
   const [activeTab, setActiveTab] = useState<'recent' | 'trending' | 'for_you' | 'most_authentic'>('recent');
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [copiedPostId, setCopiedPostId] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const searchQuery = searchParams.get('q') || '';
 
   // Derive filtered and sorted posts
   const displayedPosts = useMemo(() => {
@@ -60,6 +62,16 @@ export default function Feed() {
       : activeTab === 'most_authentic'
         ? [...mostAuthenticPostsData]
         : [...posts];
+
+    // Filter by search query across tunedText and vibe
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter(p =>
+        p.tunedText?.toLowerCase().includes(q) ||
+        p.vibe?.toLowerCase().includes(q) ||
+        p.authorId?.name?.toLowerCase().includes(q)
+      );
+    }
 
     // Filter by tag if selected
     if (activeTag) {
@@ -70,13 +82,12 @@ export default function Feed() {
     if (activeTab === 'recent') {
       result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } else if (activeTab === 'for_you') {
-      // Simple MVP algorithm: mix of upvotes and recency
       result = result.filter(p => p.upvotes > 0).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       if (result.length === 0) result = [...posts];
     }
 
     return result;
-  }, [posts, trendingPostsData, mostAuthenticPostsData, activeTab, activeTag]);
+  }, [posts, trendingPostsData, mostAuthenticPostsData, activeTab, activeTag, searchQuery]);
 
   useEffect(() => {
     const fetchFeed = async () => {
@@ -322,6 +333,20 @@ export default function Feed() {
           </Link>
         </div>
 
+        {/* Search results banner */}
+        {searchQuery && (
+          <div className="flex items-center justify-between px-4 py-2.5 glassmorphism rounded-2xl border border-primary-500/20">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-slate-400">Results for</span>
+              <span className="font-semibold text-white">&quot;{searchQuery}&quot;</span>
+              <span className="text-slate-500">({displayedPosts.length} found)</span>
+            </div>
+            <Link to="/feed" className="text-xs text-primary-400 hover:text-primary-300 font-medium transition-colors">
+              Clear ✕
+            </Link>
+          </div>
+        )}
+
         {loading ? (
           <div className="flex justify-center items-center py-20">
             <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
@@ -330,8 +355,15 @@ export default function Feed() {
           <div className="text-center text-slate-500 py-20 glassmorphism rounded-3xl flex flex-col items-center">
             <Sparkles size={48} className="text-slate-700 mb-4" />
             <p className="text-lg">
-              {activeTag ? `No vibes found for #${activeTag}.` : 'The wall is empty. Be the first to spark a vibe!'}
+              {searchQuery
+                ? `No vibes found for "${searchQuery}". Try a different term!`
+                : activeTag
+                  ? `No vibes found for #${activeTag}.`
+                  : 'The wall is empty. Be the first to spark a vibe!'}
             </p>
+            {searchQuery && (
+              <Link to="/feed" className="mt-4 text-sm text-primary-400 hover:underline">Clear search</Link>
+            )}
           </div>
         ) : (
           <AnimatePresence mode="popLayout">
