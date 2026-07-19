@@ -108,6 +108,15 @@ export const publishPost = async (req, res) => {
             imageUrl,
         });
 
+        // Populate author before broadcasting
+        await post.populate('authorId', 'name picture');
+
+        // Broadcast to all clients
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('new_post', post);
+        }
+
         res.status(201).json(post);
     } catch (error) {
         console.error('Error publishing post:', error);

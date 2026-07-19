@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { io } from 'socket.io-client';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../lib/api';
@@ -164,6 +165,25 @@ export default function Feed() {
 
     return () => observer.disconnect();
   }, [hasMore, fetchingMore, loading]);
+
+  // Real-Time WebSockets
+  useEffect(() => {
+    const socketUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+    const socket = io(socketUrl, { transports: ['polling', 'websocket'] });
+
+    socket.on('new_post', (newPost) => {
+      setPosts((prevPosts) => {
+        // Deduplicate just in case
+        if (prevPosts.some(p => p._id === newPost._id)) return prevPosts;
+        // Unshift to the top of the feed beautifully
+        return [newPost, ...prevPosts];
+      });
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   const handleUpvote = async (id: string) => {
     if (!isAuthenticated) {
