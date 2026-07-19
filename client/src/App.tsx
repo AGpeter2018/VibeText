@@ -34,7 +34,7 @@ function App() {
 
       {/* Main content — shifts right on large screens when sidebar is visible */}
       <main
-        className={`relative z-10 flex flex-col min-h-screen transition-all duration-300 ${showSidebar ? 'lg:ml-[240px]' : ''}`}
+        className={`relative z-10 flex flex-col min-h-screen transition-all duration-300 overflow-x-hidden ${showSidebar ? 'lg:ml-[240px]' : ''}`}
         style={{ paddingTop: 56 }}
       >
         <Routes>

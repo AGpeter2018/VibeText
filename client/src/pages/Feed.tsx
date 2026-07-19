@@ -277,10 +277,10 @@ export default function Feed() {
   ] as const;
 
   return (
-    <div className="flex items-start justify-center gap-8 max-w-7xl mx-auto w-full relative">
+    <div className="flex items-start justify-center gap-6 xl:gap-8 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 relative">
 
       {/* Left Sidebar - Navigation / Filters */}
-      <div className="hidden lg:block w-64 shrink-0 sticky top-24 h-[calc(100vh-6rem)]">
+      <div className="hidden lg:block w-56 xl:w-64 shrink-0 self-start sticky top-24">
         <div className="glassmorphism rounded-3xl p-6 flex flex-col gap-6">
           <Link to="/tune" className="w-full bg-primary-600 hover:bg-primary-500 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary-500/20">
             <Plus size={20} /> New Vibe
@@ -324,7 +324,7 @@ export default function Feed() {
       </div>
 
       {/* Main Feed Column */}
-      <div className="flex-1 max-w-2xl w-full flex flex-col gap-6 pb-20">
+      <div className="flex-1 min-w-0 max-w-2xl w-full flex flex-col gap-5 pb-20">
 
         {/* Mobile Tune Button */}
         <div className="lg:hidden w-full mb-2">
@@ -648,7 +648,7 @@ export default function Feed() {
       </div>
 
       {/* Right Sidebar - Trending / Community */}
-      <div className="hidden xl:block w-80 shrink-0 sticky top-24 h-[calc(100vh-6rem)]">
+      <div className="hidden xl:block w-72 shrink-0 self-start sticky top-24">
         <div className="glassmorphism rounded-3xl p-6 mb-6">
           <div className="flex items-center gap-2 mb-6">
             <Flame size={20} className="text-orange-500" />
