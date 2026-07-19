@@ -25,14 +25,25 @@ export const getTrendingVibes = async (req, res) => {
 
 export const getFeed = async (req, res) => {
     try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
         const posts = await Post.find()
             .populate('authorId', 'name picture')
             .populate('replies.authorId', 'name picture')
             .populate('authenticityRatings.userId', 'name picture')
             .sort({ createdAt: -1 })
-            .limit(50)
+            .skip(skip)
+            .limit(limit)
             .lean();
-        res.status(200).json(posts);
+
+        const total = await Post.countDocuments();
+
+        res.status(200).json({
+            posts,
+            hasMore: skip + posts.length < total
+        });
     } catch (error) {
         console.error('Error fetching feed:', error);
         res.status(500).json({ error: 'Failed to fetch feed' });
@@ -41,6 +52,10 @@ export const getFeed = async (req, res) => {
 
 export const getTrendingPosts = async (req, res) => {
     try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 15;
+        const skip = (page - 1) * limit;
+
         // Find trending posts based on a score combining upvotes, shares, and authenticity
         const posts = await Post.aggregate([
             {
@@ -56,14 +71,20 @@ export const getTrendingPosts = async (req, res) => {
                 }
             },
             { $sort: { trendingScore: -1, createdAt: -1 } },
-            { $limit: 20 }
+            { $skip: skip },
+            { $limit: limit }
         ]);
 
         await Post.populate(posts, { path: 'authorId', select: 'name picture' });
         await Post.populate(posts, { path: 'replies.authorId', select: 'name picture' });
         await Post.populate(posts, { path: 'authenticityRatings.userId', select: 'name picture' });
 
-        res.status(200).json(posts);
+        const total = await Post.countDocuments(); // Trending considers all posts, realistically should count total
+
+        res.status(200).json({
+            posts,
+            hasMore: skip + posts.length < total
+        });
     } catch (error) {
         console.error('Error fetching trending posts:', error);
         res.status(500).json({ error: 'Failed to fetch trending posts' });
@@ -231,15 +252,25 @@ export const sharePost = async (req, res) => {
 
 export const getMostAuthenticPosts = async (req, res) => {
     try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
         const posts = await Post.find({ authenticityScore: { $gt: 0 } })
             .populate('authorId', 'name picture')
             .populate('replies.authorId', 'name picture')
             .populate('authenticityRatings.userId', 'name picture')
             .sort({ authenticityScore: -1, createdAt: -1 })
-            .limit(20)
+            .skip(skip)
+            .limit(limit)
             .lean();
 
-        res.status(200).json(posts);
+        const total = await Post.countDocuments({ authenticityScore: { $gt: 0 } });
+
+        res.status(200).json({
+            posts,
+            hasMore: skip + posts.length < total
+        });
     } catch (error) {
         console.error('Error fetching most authentic posts:', error);
         res.status(500).json({ error: 'Failed to fetch most authentic posts' });

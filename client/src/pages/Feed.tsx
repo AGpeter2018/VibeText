@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../lib/api';
@@ -25,12 +25,14 @@ function timeAgo(dateInput: string) {
 
 export default function Feed() {
   const [posts, setPosts] = useState<any[]>([]);
-  const [trendingPostsData, setTrendingPostsData] = useState<any[]>([]);
-  const [mostAuthenticPostsData, setMostAuthenticPostsData] = useState<any[]>([]);
   const [weeklyVibe, setWeeklyVibe] = useState<any>(null);
   const [ratingNotes, setRatingNotes] = useState<{ [key: string]: string }>({});
   const [trendingVibes, setTrendingVibes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [fetchingMore, setFetchingMore] = useState(false);
+  const observerTarget = useRef<HTMLDivElement>(null);
   const { isAuthenticated, token } = useAuth();
 
   // Helper to extract userId from JWT locally
@@ -57,11 +59,7 @@ export default function Feed() {
 
   // Derive filtered and sorted posts
   const displayedPosts = useMemo(() => {
-    let result = activeTab === 'trending'
-      ? [...trendingPostsData]
-      : activeTab === 'most_authentic'
-        ? [...mostAuthenticPostsData]
-        : [...posts];
+    let result = [...posts];
 
     // Filter by search query across tunedText and vibe
     if (searchQuery.trim()) {
@@ -79,42 +77,47 @@ export default function Feed() {
     }
 
     // Sort by tab
-    if (activeTab === 'recent') {
-      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    } else if (activeTab === 'for_you') {
+    if (activeTab === 'for_you') {
       result = result.filter(p => p.upvotes > 0).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      if (result.length === 0) result = [...posts];
     }
 
     return result;
-  }, [posts, trendingPostsData, mostAuthenticPostsData, activeTab, activeTag, searchQuery]);
+  }, [posts, activeTab, activeTag, searchQuery]);
 
+  // Reset pagination on tab/tag change
   useEffect(() => {
-    const fetchFeed = async () => {
+    setPosts([]);
+    setPage(1);
+    setHasMore(true);
+  }, [activeTab, activeTag]);
+
+  // Fetch the current feed tab dynamically
+  useEffect(() => {
+    const fetchCurrentFeed = async () => {
+      let endpoint = 'feed';
+      if (activeTab === 'trending') endpoint = 'feed/trending-posts';
+      else if (activeTab === 'most_authentic') endpoint = 'feed/most-authentic';
+
       try {
-        const [feedRes, trendingVibesRes, trendingPostsRes, mostAuthenticRes, weeklyVibeRes] = await Promise.all([
-          api.get('feed'),
-          api.get('feed/trending'),
-          api.get('feed/trending-posts'),
-          api.get('feed/most-authentic'),
-          api.get('feed/weekly-vibe')
-        ]);
-        setPosts(feedRes.data);
-        setTrendingVibes(trendingVibesRes.data);
-        setTrendingPostsData(trendingPostsRes.data);
-        setMostAuthenticPostsData(mostAuthenticRes.data);
-        setWeeklyVibe(weeklyVibeRes.data);
+        if (page === 1) setLoading(true);
+        else setFetchingMore(true);
 
-        if (currentUserId && isAuthenticated) {
-          try {
-            const savedRes = await api.get('user/saved');
-            const savedIds = savedRes.data.map((p: any) => typeof p === 'string' ? p : p._id);
-            setSavedPosts(new Set(savedIds));
-          } catch (e) {
-            console.error('Failed to fetch saved posts', e);
-          }
+        const res = await api.get(`${endpoint}?page=${page}&limit=10`);
 
-          const userLikes = feedRes.data
+        if (page === 1) {
+          setPosts(res.data.posts);
+        } else {
+          setPosts(prev => [...prev, ...res.data.posts]);
+        }
+        setHasMore(res.data.hasMore);
+
+        // Fetch user liked/saved if authenticated and first page
+        if (page === 1 && currentUserId && isAuthenticated) {
+          const savedRes = await api.get('user/saved');
+          const savedIds = savedRes.data.map((p: any) => typeof p === 'string' ? p : p._id);
+          setSavedPosts(new Set(savedIds));
+
+          const userLikes = res.data.posts
             .filter((p: any) => p.upvotedBy?.includes(currentUserId))
             .map((p: any) => p._id);
           setLikedPosts(new Set(userLikes));
@@ -123,10 +126,44 @@ export default function Feed() {
         console.error('Failed to fetch data', err);
       } finally {
         setLoading(false);
+        setFetchingMore(false);
       }
     };
-    fetchFeed();
-  }, [isAuthenticated, currentUserId]);
+    fetchCurrentFeed();
+  }, [activeTab, activeTag, page, isAuthenticated, currentUserId]);
+
+  // Fetch static sidebars once
+  useEffect(() => {
+    const fetchSidebars = async () => {
+      try {
+        const [trendingVibesRes, weeklyVibeRes] = await Promise.all([
+          api.get('feed/trending'),
+          api.get('feed/weekly-vibe')
+        ]);
+        setTrendingVibes(trendingVibesRes.data);
+        setWeeklyVibe(weeklyVibeRes.data);
+      } catch (err) { }
+    };
+    fetchSidebars();
+  }, []);
+
+  // Intersection Observer for Infinite Scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && hasMore && !fetchingMore && !loading) {
+          setPage(prev => prev + 1);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasMore, fetchingMore, loading]);
 
   const handleUpvote = async (id: string) => {
     if (!isAuthenticated) {
@@ -203,24 +240,19 @@ export default function Feed() {
       const note = ratingNotes[id] || '';
       const res = await api.post(`feed/rate/${id}`, { score, note });
 
-      const updatePostList = (list: any[]) =>
-        list.map(p => {
-          if (p._id === id) {
-            const existsIdx = p.authenticityRatings?.findIndex((r: any) => r.userId?._id === currentUserId || r.userId === currentUserId);
-            let ratings = [...(p.authenticityRatings || [])];
-            if (existsIdx >= 0) {
-              ratings[existsIdx] = { ...ratings[existsIdx], score, note, userId: { _id: currentUserId, name: 'You' } };
-            } else {
-              ratings.push({ score, note, userId: { _id: currentUserId, name: 'You' } });
-            }
-            return { ...p, authenticityScore: res.data.authenticityScore, authenticityRatings: ratings };
+      setPosts(posts.map(p => {
+        if (p._id === id) {
+          const existsIdx = p.authenticityRatings?.findIndex((r: any) => r.userId?._id === currentUserId || r.userId === currentUserId);
+          let ratings = [...(p.authenticityRatings || [])];
+          if (existsIdx >= 0) {
+            ratings[existsIdx] = { ...ratings[existsIdx], score, note, userId: { _id: currentUserId, name: 'You' } };
+          } else {
+            ratings.push({ score, note, userId: { _id: currentUserId, name: 'You' } });
           }
-          return p;
-        });
-
-      setPosts(updatePostList(posts));
-      setTrendingPostsData(updatePostList(trendingPostsData));
-      setMostAuthenticPostsData(updatePostList(mostAuthenticPostsData));
+          return { ...p, authenticityScore: res.data.authenticityScore, authenticityRatings: ratings };
+        }
+        return p;
+      }));
       setRatingNotes(prev => ({ ...prev, [id]: '' }));
     } catch (err) {
       console.error('Failed to rate', err);
@@ -259,11 +291,7 @@ export default function Feed() {
     setTimeout(() => setCopiedPostId(null), 2000);
     try {
       await api.post(`feed/copy/${id}`);
-      const updateCopies = (list: any[]) =>
-        list.map(p => p._id === id ? { ...p, copiesCount: (p.copiesCount || 0) + 1 } : p);
-      setPosts(updateCopies(posts));
-      setTrendingPostsData(updateCopies(trendingPostsData));
-      setMostAuthenticPostsData(updateCopies(mostAuthenticPostsData));
+      setPosts(posts.map(p => p._id === id ? { ...p, copiesCount: (p.copiesCount || 0) + 1 } : p));
     } catch (err) {
       console.error('Failed to track copy', err);
     }
@@ -644,6 +672,25 @@ export default function Feed() {
               </motion.div>
             ))}
           </AnimatePresence>
+        )}
+
+        {/* Intersection Observer Target */}
+        {displayedPosts.length > 0 && !loading && (
+          <div ref={observerTarget} className="w-full py-8 flex justify-center items-center">
+            {fetchingMore ? (
+              <div className="flex items-center gap-2 text-primary-400 font-medium">
+                <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                Loading more vibes...
+              </div>
+            ) : hasMore ? (
+              <div className="text-slate-500 text-sm">Scroll for more</div>
+            ) : (
+              <div className="text-slate-500 text-sm flex items-center gap-2">
+                <Sparkles size={14} className="text-primary-400" />
+                You've hit the end of the wall.
+              </div>
+            )}
+          </div>
         )}
       </div>
 

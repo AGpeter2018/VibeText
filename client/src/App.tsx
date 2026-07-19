@@ -2,7 +2,6 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
-import { Footer } from './components/Footer';
 import Landing from './pages/Landing';
 import Feed from './pages/Feed';
 import Tune from './pages/Tune';
@@ -46,7 +45,6 @@ function App() {
           <Route path="/me" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
-        <Footer />
       </main>
     </div>
   );
