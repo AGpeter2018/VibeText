@@ -24,6 +24,7 @@ export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }
   const [notifications, setNotifications] = useState(SAMPLE_NOTIFICATIONS);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isLandingMenuOpen, setIsLandingMenuOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -69,7 +70,7 @@ export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }
       >
         {/* Hamburger — mobile only, applies to both App and Landing layouts */}
         <button
-          onClick={onOpenSidebar}
+          onClick={isLanding ? () => setIsLandingMenuOpen(!isLandingMenuOpen) : onOpenSidebar}
           aria-label="Open menu"
           className="lg:hidden flex-shrink-0"
           style={{
@@ -370,6 +371,40 @@ export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }
               <Search size={12} />
             </button>
           </form>
+        </div>
+      )}
+
+      {/* Mobile Landing Page Menu */}
+      {isLandingMenuOpen && isLanding && (
+        <div style={{
+          position: 'fixed', top: 56, left: 0, right: 0, bottom: 0, zIndex: 29,
+          background: 'rgba(8,15,30,0.98)', borderTop: '1px solid rgba(255,255,255,0.05)',
+          display: 'flex', flexDirection: 'column', padding: '24px 20px',
+        }} className="md:hidden">
+          <div className="flex flex-col gap-6 w-full">
+            <Link to="/feed" onClick={() => setIsLandingMenuOpen(false)} className="text-white text-2xl font-bold">Vibe Wall</Link>
+            <Link to="/tune" onClick={() => setIsLandingMenuOpen(false)} className="text-white text-2xl font-bold">Studio</Link>
+            <Link to="/requests" onClick={() => setIsLandingMenuOpen(false)} className="text-white text-2xl font-bold">Marketplace</Link>
+
+            <div className="w-full h-px bg-white/10 my-4" />
+
+            {!isAuthenticated ? (
+              <button
+                onClick={() => { setIsLandingMenuOpen(false); setIsAuthOpen(true); }}
+                className="w-full py-4 bg-gradient-to-r from-primary-600 to-accent-600 rounded-2xl font-bold text-white text-lg shadow-xl"
+              >
+                Sign In
+              </button>
+            ) : (
+              <Link
+                to="/dashboard"
+                onClick={() => setIsLandingMenuOpen(false)}
+                className="w-full py-4 text-center bg-gradient-to-r from-primary-600 to-accent-600 rounded-2xl font-bold text-white text-lg shadow-xl"
+              >
+                Go to Dashboard
+              </Link>
+            )}
+          </div>
         </div>
       )}
 

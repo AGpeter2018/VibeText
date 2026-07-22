@@ -4,16 +4,16 @@ const generationSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: false, // Allow anonymous generations
+        required: false
     },
     vibe: {
         type: String,
-        required: true,
+        required: true
     },
     intensity: {
         type: Number,
-        required: true,
-    },
+        default: 5
+    }
 }, { timestamps: true });
 
 const Generation = mongoose.model('Generation', generationSchema);

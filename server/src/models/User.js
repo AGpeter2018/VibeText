@@ -6,6 +6,11 @@ const userSchema = new mongoose.Schema({
         sparse: true,
         unique: true,
     },
+    discordId: {
+        type: String,
+        sparse: true,
+        unique: true,
+    },
     name: {
         type: String,
         required: true,

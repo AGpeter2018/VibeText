@@ -7,6 +7,7 @@ import Feed from './pages/Feed';
 import Tune from './pages/Tune';
 import Dashboard from './pages/Dashboard';
 import Marketplace from './pages/Marketplace';
+import OAuthCallback from './pages/OAuthCallback';
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -42,6 +43,7 @@ function App() {
           <Route path="/tune" element={<div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-8"><Tune /></div>} />
           <Route path="/dashboard" element={<div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-8"><Dashboard /></div>} />
           <Route path="/requests" element={<div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-8"><Marketplace /></div>} />
+          <Route path="/oauth/callback" element={<OAuthCallback />} />
           <Route path="/me" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
