@@ -6,6 +6,7 @@ import feedRoutes from './routes/feed-route.js'
 import userRoutes from './routes/user-route.js'
 import adminRoutes from './routes/admin-route.js'
 import requestRoutes from './routes/request-route.js'
+import notificationRoutes from './routes/notification-route.js'
 
 const app = express()
 // Middleware
@@ -53,5 +54,6 @@ app.use('/api/feed', feedRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/requests', requestRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 export default app

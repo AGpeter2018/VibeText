@@ -36,6 +36,16 @@ const startServer = async () => {
         // Attach io to the Express app context so controllers can access it
         app.set('io', io);
 
+        // Handle user-specific socket rooms for targeted notifications
+        io.on('connection', (socket) => {
+            // Client should emit 'join_room' with their userId after connecting
+            socket.on('join_room', (userId) => {
+                if (userId) {
+                    socket.join(userId);
+                }
+            });
+        });
+
         httpServer.listen(PORT, () => {
             console.log(`🚀 Server is running on port ${PORT}`);
         });

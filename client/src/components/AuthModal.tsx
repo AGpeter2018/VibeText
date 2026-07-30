@@ -7,13 +7,14 @@ import api from '../lib/api';
 export function AuthModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
   const { login } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState<'email' | 'otp'>('email');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Form State
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
     try {
@@ -32,14 +33,16 @@ export function AuthModal({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
     setLoading(true);
 
     try {
-      if (isLogin) {
-        const res = await api.post('auth/login', { email, password });
-        login(res.data.token, res.data);
+      if (mode === 'email') {
+        // Step 1: Send OTP to their email
+        await api.post('auth/send-otp', { email });
+        setMode('otp');
       } else {
-        const res = await api.post('auth/register', { name, email, password });
+        // Step 2: Verify the 6-digit code
+        const res = await api.post('auth/verify-otp', { email, otp, name: isLogin ? undefined : name });
         login(res.data.token, res.data);
+        onClose();
       }
-      onClose();
     } catch (err: any) {
       setError(err.response?.data?.error || 'Authentication failed');
     } finally {
@@ -57,27 +60,29 @@ export function AuthModal({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
         </button>
 
         <h2 className="text-2xl font-bold text-white mb-2 text-center">
-          {isLogin ? 'Welcome Back' : 'Join VibeText'}
+          {mode === 'otp' ? 'Check Your Email' : (isLogin ? 'Welcome Back' : 'Join VibeText')}
         </h2>
         <p className="text-slate-400 text-center mb-6">
-          {isLogin ? 'Sign in to continue vining' : 'Sign up to publish your vibes'}
+          {mode === 'otp' ? `We sent a 6-digit code to ${email}` : (isLogin ? 'Sign in to continue vining' : 'Sign up to publish your vibes')}
         </p>
 
-        {/* Tabs */}
-        <div className="flex bg-slate-900/50 rounded-lg p-1 mb-6">
-          <button
-            onClick={() => { setIsLogin(true); setError(''); }}
-            className={`flex-1 py-2 rounded-md text-sm font-medium transition-all ${isLogin ? 'bg-primary-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
-          >
-            Sign In
-          </button>
-          <button
-            onClick={() => { setIsLogin(false); setError(''); }}
-            className={`flex-1 py-2 rounded-md text-sm font-medium transition-all ${!isLogin ? 'bg-primary-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
-          >
-            Sign Up
-          </button>
-        </div>
+        {/* Tabs - Only show on email step */}
+        {mode === 'email' && (
+          <div className="flex bg-slate-900/50 rounded-lg p-1 mb-6">
+            <button
+              onClick={() => { setIsLogin(true); setError(''); }}
+              className={`flex-1 py-2 rounded-md text-sm font-medium transition-all ${isLogin ? 'bg-primary-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => { setIsLogin(false); setError(''); }}
+              className={`flex-1 py-2 rounded-md text-sm font-medium transition-all ${!isLogin ? 'bg-primary-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+            >
+              Sign Up
+            </button>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg mb-4 text-center">
@@ -86,51 +91,65 @@ export function AuthModal({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4 mb-6">
-          {!isLogin && (
+          {mode === 'email' ? (
+            <>
+              {!isLogin && (
+                <div className="relative">
+                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:border-primary-500 transition-colors"
+                    required={!isLogin}
+                  />
+                </div>
+              )}
+
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <input
+                  type="email"
+                  placeholder="Email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-slate-900 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:border-primary-500 transition-colors"
+                  required
+                />
+              </div>
+            </>
+          ) : (
             <div className="relative">
-              <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input
                 type="text"
-                placeholder="Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full bg-slate-900 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:border-primary-500 transition-colors"
-                required={!isLogin}
+                placeholder="6-Digit OTP Code"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="w-full bg-slate-900 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white font-mono text-center tracking-widest text-lg focus:outline-none focus:border-primary-500 transition-colors"
+                required
               />
             </div>
           )}
-
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input
-              type="email"
-              placeholder="Email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-slate-900 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:border-primary-500 transition-colors"
-              required
-            />
-          </div>
-
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-slate-900 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:border-primary-500 transition-colors"
-              required
-            />
-          </div>
 
           <button
             type="submit"
             disabled={loading}
             className="w-full bg-primary-600 hover:bg-primary-500 text-white font-medium py-3 rounded-xl transition-colors disabled:opacity-50"
           >
-            {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Sign Up')}
+            {loading ? 'Processing...' : (mode === 'email' ? 'Send Verification Code' : 'Verify Code')}
           </button>
+
+          {mode === 'otp' && (
+            <button
+              type="button"
+              onClick={() => { setMode('email'); setOtp(''); }}
+              className="w-full text-slate-400 hover:text-white text-sm py-2"
+            >
+              Back to Email
+            </button>
+          )}
         </form>
 
         <div className="relative flex items-center justify-center mb-6">

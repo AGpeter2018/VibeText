@@ -1,6 +1,7 @@
 import Post from '../models/Post.js';
 import User from '../models/User.js';
 import WeeklyVibe from '../models/WeeklyVibe.js';
+import Notification from '../models/Notification.js';
 
 export const getTrendingVibes = async (req, res) => {
     try {
@@ -140,6 +141,25 @@ export const upvotePost = async (req, res) => {
         post.upvotedBy.push(req.userId);
         await post.save();
 
+        // Create notification for post author (skip if you upvote your own post)
+        if (post.authorId.toString() !== req.userId.toString()) {
+            const notification = await Notification.create({
+                recipient: post.authorId,
+                sender: req.userId,
+                post: post._id,
+                type: 'upvote'
+            });
+
+            // Emit the notification live to the author's socket room
+            const io = req.app.get('io');
+            if (io) {
+                const populatedNotif = await Notification.findById(notification._id)
+                    .populate('sender', 'name picture')
+                    .populate('post', 'vibe tunedText');
+                io.to(post.authorId.toString()).emit('new_notification', populatedNotif);
+            }
+        }
+
         res.status(200).json({ upvotes: post.upvotes });
     } catch (error) {
         console.error('Error upvoting post:', error);
@@ -234,6 +254,24 @@ export const savePost = async (req, res) => {
         } else {
             user.savedPosts.push(post._id);
             post.savesCount += 1;
+
+            // Create notification only when saving (not un-saving), and skip self-saves
+            if (post.authorId.toString() !== req.userId.toString()) {
+                const notification = await Notification.create({
+                    recipient: post.authorId,
+                    sender: req.userId,
+                    post: post._id,
+                    type: 'save'
+                });
+
+                const io = req.app.get('io');
+                if (io) {
+                    const populatedNotif = await Notification.findById(notification._id)
+                        .populate('sender', 'name picture')
+                        .populate('post', 'vibe tunedText');
+                    io.to(post.authorId.toString()).emit('new_notification', populatedNotif);
+                }
+            }
         }
 
         await Promise.all([user.save(), post.save()]);

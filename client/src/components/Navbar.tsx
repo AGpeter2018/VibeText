@@ -3,6 +3,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { AuthModal } from './AuthModal';
 import { Menu, Bell, Search, Zap, LayoutDashboard, LogOut } from 'lucide-react';
+import { io } from 'socket.io-client';
+import api from '../lib/api';
 
 interface NavbarProps {
   onOpenSidebar: () => void;
@@ -10,18 +12,14 @@ interface NavbarProps {
   isLanding?: boolean;
 }
 
-const SAMPLE_NOTIFICATIONS = [
-  { id: '1', text: 'Someone upvoted your vibe!', time: '2m ago', read: false },
-  { id: '2', text: 'New weekly vibe drop is live 🎉', time: '1h ago', read: false },
-  { id: '3', text: 'Your post hit 10 upvotes!', time: '3h ago', read: true },
-];
+
 
 export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }: NavbarProps) {
   const { user, isAuthenticated, logout } = useAuth();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isNotifOpen, setIsNotifOpen] = useState(false);
-  const [notifications, setNotifications] = useState(SAMPLE_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isLandingMenuOpen, setIsLandingMenuOpen] = useState(false);
@@ -29,7 +27,40 @@ export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }
   const profileRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n: any) => !n.read).length;
+
+  // Fetch notifications from API and subscribe to live socket updates
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+
+    const userId = (user as any)._id;
+    if (!userId) return;
+
+    // 1. Fetch initial list from REST API
+    api.get('notifications').then(res => setNotifications(res.data)).catch(() => { });
+
+    // 2. Join user-specific socket room — MUST happen inside 'connect' event
+    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+      transports: ['websocket', 'polling']
+    });
+
+    const joinRoom = () => {
+      socket.emit('join_room', userId);
+    };
+
+    // If already connected (reconnect case), join immediately
+    if (socket.connected) {
+      joinRoom();
+    } else {
+      socket.on('connect', joinRoom);
+    }
+
+    socket.on('new_notification', (notif: any) => {
+      setNotifications(prev => [notif, ...prev]);
+    });
+
+    return () => { socket.disconnect(); };
+  }, [isAuthenticated, user]);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -53,8 +84,11 @@ export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }
     }
   };
 
-  const markAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  const markAllRead = async () => {
+    try {
+      await api.patch('notifications/read-all');
+      setNotifications(prev => prev.map((n: any) => ({ ...n, read: true })));
+    } catch { }
   };
 
   return (
@@ -215,8 +249,8 @@ export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }
                         </button>
                       )}
                     </div>
-                    {notifications.map(n => (
-                      <div key={n.id} style={{
+                    {notifications.map((n: any) => (
+                      <div key={n._id || n.id} style={{
                         padding: '10px 14px',
                         borderBottom: '1px solid rgba(255,255,255,0.04)',
                         background: n.read ? 'transparent' : 'rgba(124,58,237,0.06)',
@@ -225,8 +259,14 @@ export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }
                         {!n.read && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#7c3aed', flexShrink: 0, marginTop: 4 }} />}
                         {n.read && <span style={{ width: 6, flexShrink: 0 }} />}
                         <div>
-                          <p style={{ margin: 0, color: n.read ? '#94a3b8' : '#e2e8f0', fontSize: 12, lineHeight: 1.4 }}>{n.text}</p>
-                          <p style={{ margin: '3px 0 0', color: '#475569', fontSize: 10 }}>{n.time}</p>
+                          <p style={{ margin: 0, color: n.read ? '#94a3b8' : '#e2e8f0', fontSize: 12, lineHeight: 1.4 }}>
+                            {n.sender?.name || 'Someone'}
+                            {n.type === 'upvote' ? ' ❤️ upvoted' : ' 🔖 saved'} your
+                            {n.post?.vibe ? ` "${n.post.vibe}"` : ''} vibe!
+                          </p>
+                          <p style={{ margin: '3px 0 0', color: '#475569', fontSize: 10 }}>
+                            {n.createdAt ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                          </p>
                         </div>
                       </div>
                     ))}

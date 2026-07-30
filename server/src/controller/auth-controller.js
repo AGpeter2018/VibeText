@@ -2,12 +2,13 @@ import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import axios from 'axios';
+import nodemailer from 'nodemailer';
 import User from '../models/User.js';
+import Otp from '../models/Otp.js';
 
 const adminEmails = [
     'adenijipeter2018@gmail.com',
     'peteradeniji2018@gmail.com',
-    'agpeter2018@gmail.com'
 ];
 
 const isAdminEmail = (email) => {
@@ -52,6 +53,7 @@ export const googleAuth = async (req, res) => {
 
         res.status(200).json({
             token,
+            _id: user._id,
             name: user.name,
             email: user.email,
             picture: user.picture,
@@ -122,6 +124,7 @@ export const verifyOAuth = async (req, res) => {
 
         res.status(200).json({
             token,
+            _id: user._id,
             name: user.name,
             email: user.email,
             picture: user.picture,
@@ -138,6 +141,104 @@ export const verifyOAuth = async (req, res) => {
         };
         console.error('OAuth verification error:', discordErrorMsg);
         res.status(500).json({ error: 'invalid_request', details: discordErrorMsg, debugPayload });
+    }
+};
+
+export const sendOtp = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ error: 'Email is required' });
+
+        // Generate 6-digit OTP
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Upsert OTP in database (will automatically expire in 5 min due to TTL)
+        await Otp.findOneAndUpdate(
+            { email: email.toLowerCase().trim() },
+            { otp: otpCode },
+            { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
+        );
+
+        if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+            const smtpPort = Number(process.env.SMTP_PORT) || 587;
+            const transporter = nodemailer.createTransport({
+                host: process.env.SMTP_HOST || 'smtp.gmail.com',
+                port: smtpPort,
+                secure: smtpPort === 465,
+                auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+                tls: { rejectUnauthorized: false }
+            });
+
+            await transporter.sendMail({
+                from: process.env.SMTP_FROM || '"VibeText Security" <noreply@vibetext.com>',
+                to: email,
+                subject: "Your VibeText Login Code",
+                text: `Your one-time passcode is: ${otpCode}. It expires in 5 minutes.`,
+                html: `<h3>Welcome to VibeText!</h3><p>Your one-time passcode is: <b>${otpCode}</b>.</p><p>It expires in 5 minutes.</p>`
+            });
+        } else {
+            // Local fallback logic since Ethereal Mail port 587 is blocked by ISP.
+            console.log("\n=========================================");
+            console.log(`⚠️ NO SMTP CREDENTIALS IN .ENV!`);
+            console.log(`📧 Simulated Email to: ${email}`);
+            console.log(`🔑 YOUR LOGIN OTP IS: ${otpCode}`);
+            console.log("=========================================\n");
+        }
+
+        res.status(200).json({ message: 'OTP sent successfully!' });
+    } catch (error) {
+        console.error('Send OTP Error:', error);
+        res.status(500).json({ error: 'Failed to send verification email' });
+    }
+};
+
+export const verifyOtp = async (req, res) => {
+    try {
+        const { email, otp, name } = req.body;
+        if (!email || !otp) return res.status(400).json({ error: 'Email and OTP are required' });
+
+        const cleanEmail = email.toLowerCase().trim();
+        const record = await Otp.findOne({ email: cleanEmail });
+
+        if (!record || record.otp !== otp) {
+            return res.status(401).json({ error: 'Invalid or expired OTP code' });
+        }
+
+        // OTP is valid! Destroy it so it can't be reused
+        await Otp.findByIdAndDelete(record._id);
+
+        let user = await User.findOne({ email: cleanEmail });
+
+        if (!user) {
+            const role = isAdminEmail(cleanEmail) ? 'admin' : 'user';
+            // Default to parsed name if no name provided
+            const finalName = name || cleanEmail.split('@')[0];
+            user = await User.create({ name: finalName, email: cleanEmail, role });
+        } else {
+            if (isAdminEmail(cleanEmail) && user.role !== 'admin') {
+                user.role = 'admin';
+                await user.save();
+            }
+        }
+
+        const token = jwt.sign(
+            { userId: user._id, email: user.email, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        res.status(200).json({
+            token,
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            picture: user.picture,
+            role: user.role,
+        });
+
+    } catch (error) {
+        console.error('Verify OTP Error:', error);
+        res.status(500).json({ error: 'Verification failed' });
     }
 };
 
