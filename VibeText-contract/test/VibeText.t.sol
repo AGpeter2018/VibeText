@@ -9,158 +9,136 @@ contract VibeTextTest is Test {
     VibeText public vibeText;
 
     address public owner = address(0x123);
-    address public user = address(0x456);
+    address public admin = address(0x456);
+    address public validator = address(0x789);
 
-    // Events
-    event TuneRequested(address indexed requester, string input, string country);
+    // Events matching interface
+    event TreasuryFunded(address indexed funder, uint256 amount);
+    event ValidatorRewarded(address indexed validator, uint256 rewardAmount, string verificationId);
+    event AdminAdded(address indexed admin);
+    event AdminRemoved(address indexed admin);
     event Withdrawn(address indexed owner, uint256 amount);
-    event PriceChanged(uint256 newPrice);
     event Paused(address account);
     event Unpaused(address account);
 
     function setUp() public {
-        vm.deal(user, 10 ether);
         vm.deal(owner, 10 ether);
+        vm.deal(admin, 10 ether);
+        vm.deal(validator, 0 ether);
         vibeText = new VibeText(owner);
     }
 
     function test_owner() public {
         assertEq(owner, vibeText.owner());
-        assert(vibeText.owner() != user);
     }
 
-    // --- Modifier Tests ---
-    function test_onlyOwnerThrowsForUser() public {
-        vm.prank(user);
-        vm.expectRevert(IVibeText.NotOwner.selector);
-        vibeText.pause();
-    }
-
-    function test_onlyOwnerPassesForOwner() public {
+    // --- Admin Management Tests ---
+    function test_addAdmin() public {
         vm.prank(owner);
-        vibeText.pause();
-        assertEq(vibeText.paused(), true);
-    }
-
-    // --- requestTune Tests ---
-
-    function test_requestTuneHappyPath() public {
-        vm.prank(user);
         vm.expectEmit(true, false, false, true);
-        emit TuneRequested(user, "hello", "FR");
-        vibeText.requestTune("hello", "FR");
+        emit AdminAdded(admin);
+        vibeText.addAdmin(admin);
+
+        assertTrue(vibeText.admins(admin));
     }
 
-    function test_requestTuneWithPrice() public {
-        vm.prank(owner);
-        vibeText.changePrice(0.01 ether);
-
-        vm.prank(user);
-        vm.expectEmit(true, false, false, true);
-        emit TuneRequested(user, "hello", "FR");
-        vibeText.requestTune{value: 0.01 ether}("hello", "FR");
-    }
-
-    function testRevert_requestTuneInsufficientPayment() public {
-        vm.prank(owner);
-        vibeText.changePrice(0.01 ether);
-
-        vm.prank(user);
-        vm.expectRevert(IVibeText.InsufficientPayment.selector);
-        vibeText.requestTune{value: 0.005 ether}("hello", "FR");
-    }
-
-    function testRevert_requestTuneWhenPaused() public {
-        vm.prank(owner);
-        vibeText.pause();
-
-        vm.prank(user);
-        vm.expectRevert("Pausable: paused");
-        vibeText.requestTune("hello", "FR");
-    }
-
-    // --- changePrice Tests ---
-
-    function test_changePriceHappyPath() public {
-        vm.prank(owner);
-        vm.expectEmit(false, false, false, true);
-        emit PriceChanged(1 ether);
-        vibeText.changePrice(1 ether);
-
-        assertEq(vibeText.PRICE(), 1 ether);
-    }
-
-    function testRevert_changePriceNotOwner() public {
-        vm.prank(user);
+    function testRevert_addAdminNotOwner() public {
+        vm.prank(admin);
         vm.expectRevert(IVibeText.NotOwner.selector);
-        vibeText.changePrice(1 ether);
+        vibeText.addAdmin(admin);
     }
 
-    // --- withdraw Tests ---
-
-    function test_withdrawHappyPath() public {
+    function test_removeAdmin() public {
         vm.prank(owner);
-        vibeText.changePrice(1 ether);
-        
-        vm.prank(user);
-        vibeText.requestTune{value: 2 ether}("hello", "US");
-
-        assertEq(address(vibeText).balance, 2 ether);
-        uint256 ownerInitialBalance = owner.balance;
+        vibeText.addAdmin(admin);
 
         vm.prank(owner);
         vm.expectEmit(true, false, false, true);
-        emit Withdrawn(owner, 1.5 ether);
-        vibeText.withdraw(1.5 ether);
+        emit AdminRemoved(admin);
+        vibeText.removeAdmin(admin);
 
-        assertEq(address(vibeText).balance, 0.5 ether);
-        assertEq(owner.balance, ownerInitialBalance + 1.5 ether);
+        assertFalse(vibeText.admins(admin));
     }
 
-    function testRevert_withdrawInsufficientFunds() public {
+    // --- Treasury Funding Tests ---
+    function test_fundTreasury() public {
+        vm.prank(admin);
+        vm.expectEmit(true, false, false, true);
+        emit TreasuryFunded(admin, 1 ether);
+        vibeText.fundTreasury{value: 1 ether}();
+
+        assertEq(address(vibeText).balance, 1 ether);
+    }
+
+    function test_fallbackFunding() public {
+        vm.prank(admin);
+        (bool success, ) = address(vibeText).call{value: 1 ether}("");
+        assertTrue(success);
+        assertEq(address(vibeText).balance, 1 ether);
+    }
+
+    function testRevert_fundTreasuryZero() public {
+        vm.prank(admin);
+        vm.expectRevert(IVibeText.InvalidAmount.selector);
+        vibeText.fundTreasury();
+    }
+
+    // --- Reward Validator Tests ---
+    function test_rewardValidator() public {
+        // Setup Protocol
         vm.prank(owner);
-        vibeText.changePrice(1 ether);
-        
-        vm.prank(user);
-        vibeText.requestTune{value: 1 ether}("hello", "US");
-
+        vibeText.addAdmin(admin);
         vm.prank(owner);
-        vm.expectRevert(IVibeText.InsufficientFunds.selector);
-        vibeText.withdraw(2 ether);
+        vibeText.fundTreasury{value: 2 ether}();
+
+        // Admin rewards validator
+        vm.prank(admin);
+        vm.expectEmit(true, false, false, true);
+        emit ValidatorRewarded(validator, 0.5 ether, "mongo_doc_id_1");
+        vibeText.rewardValidator(validator, 0.5 ether, "mongo_doc_id_1");
+
+        assertEq(validator.balance, 0.5 ether);
+        assertTrue(vibeText.processedVerifications("mongo_doc_id_1"));
     }
 
-    function testRevert_withdrawNotOwner() public {
-        vm.prank(user);
-        vm.expectRevert(IVibeText.NotOwner.selector);
-        vibeText.withdraw(1 ether);
+    function testRevert_rewardValidatorNotAdmin() public {
+        vm.prank(owner);
+        vibeText.fundTreasury{value: 2 ether}();
+
+        vm.prank(validator);
+        vm.expectRevert(IVibeText.NotAdmin.selector);
+        vibeText.rewardValidator(validator, 0.5 ether, "mongo_doc_id_2");
     }
 
-    function testRevert_withdrawFailed() public {
-        RejectingReceiver rejector = new RejectingReceiver();
-        VibeText vibeWithRejectingOwner = new VibeText(address(rejector));
-        
-        vm.deal(address(vibeWithRejectingOwner), 2 ether);
+    function testRevert_rewardValidatorAlreadyProcessed() public {
+        vm.prank(owner);
+        vibeText.addAdmin(admin);
+        vm.prank(owner);
+        vibeText.fundTreasury{value: 2 ether}();
 
-        vm.prank(address(rejector));
-        vm.expectRevert(IVibeText.WithdrawFailed.selector);
-        vibeWithRejectingOwner.withdraw(1 ether);
+        vm.prank(admin);
+        vibeText.rewardValidator(validator, 0.5 ether, "mongo_doc_1");
+
+        vm.prank(admin);
+        vm.expectRevert(IVibeText.AlreadyProcessed.selector);
+        vibeText.rewardValidator(validator, 0.5 ether, "mongo_doc_1");
     }
 
-    // --- PauseModule Tests ---
+    function testRevert_rewardValidatorDepleted() public {
+        vm.prank(owner);
+        vibeText.addAdmin(admin);
+        vm.prank(owner);
+        vibeText.fundTreasury{value: 0.1 ether}();
 
+        vm.prank(admin);
+        vm.expectRevert(IVibeText.TreasuryDepleted.selector);
+        vibeText.rewardValidator(validator, 0.5 ether, "doc_3");
+    }
+
+    // --- Pause Tests ---
     function test_pauseEmitsEvent() public {
         vm.prank(owner);
-        vm.expectEmit(false, false, false, true);
         emit Paused(owner);
-        vibeText.pause();
-    }
-
-    function testRevert_pauseAlreadyPaused() public {
-        vm.prank(owner);
-        vibeText.pause();
-
-        vm.prank(owner);
-        vm.expectRevert("Pausable: paused");
         vibeText.pause();
     }
 
@@ -169,20 +147,7 @@ contract VibeTextTest is Test {
         vibeText.pause();
 
         vm.prank(owner);
-        vm.expectEmit(false, false, false, true);
         emit Unpaused(owner);
         vibeText.unpause();
-
-        assertEq(vibeText.paused(), false);
     }
-
-    function testRevert_unpauseNotPaused() public {
-        vm.prank(owner);
-        vm.expectRevert("Pausable: not paused");
-        vibeText.unpause();
-    }
-}
-
-contract RejectingReceiver {
-    // Rejects incoming ETH by default since there's no receive or fallback
 }

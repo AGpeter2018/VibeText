@@ -9,73 +9,66 @@ contract DeployVibeText is Script {
     function setUp() public {}
 
     function run() public {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        address deployerAddress = vm.addr(deployerPrivateKey);
-        
-        // Let's set up the user's private key as well
-        uint256 userPrivateKey = vm.envUint("USER_PRIVATE_KEY");
-        address userAddress = vm.addr(userPrivateKey);
+        uint256 ownerPrivateKey = vm.envUint("PRIVATE_KEY");
+        address ownerAddress = vm.addr(ownerPrivateKey);
 
-        console.log("Deploying VibeText from:", deployerAddress);
+        // Simulating the Node.js backend acting as an admin
+        uint256 backendPrivateKey = vm.envUint("USER_PRIVATE_KEY");
+        address backendAddress = vm.addr(backendPrivateKey);
 
-        // --- DEPLOYER ACTIONS ---
-        vm.startBroadcast(deployerPrivateKey);
+        // A random user validating text on the frontend
+        address validatorAddress = address(0xABCD);
 
-        VibeText vibeText = new VibeText(deployerAddress);
-        console.log("VibeText deployed at:", address(vibeText));
+        // If running locally (Anvil uses Chain ID 31337), magically fund the wallets with 10 ETH so it doesn't crash on OutOfFunds!
+        if (block.chainid == 31337) {
+            vm.deal(ownerAddress, 10 ether);
+            vm.deal(backendAddress, 10 ether);
+        }
 
-        vibeText.changePrice(0.01 ether);
-        console.log("Price initialized to:", vibeText.PRICE());
+        console.log("=== VibeText BOT Chain Demo ===");
+        console.log("Protocol Owner:", ownerAddress);
+        console.log("Backend Oracle:", backendAddress);
 
-       
+        // --- 1. PROTOCOL DEPLOYMENT & SETUP (OWNER) ---
+        vm.startBroadcast(ownerPrivateKey);
 
-        vm.stopBroadcast(); 
-        // -----------------------
+        VibeText vibeText = new VibeText(ownerAddress);
+        console.log("1. Contract Deployed at:", address(vibeText));
 
+        // Add the backend address as an authorized Admin Oracle so it can process payouts
+        vibeText.addAdmin(backendAddress);
+        console.log("2. Registered Node.js Backend as Admin Oracle");
 
-        // --- USER ACTIONS ---
-        console.log("User calling requestTune from:", userAddress);
-        
-        // Start a NEW broadcast as the user
-        vm.startBroadcast(userPrivateKey);
-
-        // The user makes the requestTune call
-        vm.deal(userAddress, 10 ether); 
-        vibeText.requestTune{value: 0.5 ether}("hello world", "US");
-        console.log("User balance after requestTune:", address(userAddress).balance);
-        console.log("deployer balance after requestTune:", address(deployerAddress).balance);
-        console.log("contract balance after requestTune:", address(vibeText).balance); 
+        // Fund the protocol treasury with 1 native token
+        vibeText.fundTreasury{value: 1 ether}();
+        console.log("3. Funded VibeText Treasury with 1 BOT Token");
 
         vm.stopBroadcast();
 
-        // Deployer Interaction: Withdraw funds
-        console.log("Deployer withdrawing funds...");
-        vm.startBroadcast(deployerPrivateKey);
-        vibeText.withdraw(0.2 ether); 
-        console.log("Deployer balance after withdrawal:", address(deployerAddress).balance);
-        console.log("Contract balance after withdrawal:", address(vibeText).balance);
+        console.log("Current Treasury Balance:", address(vibeText).balance);
 
-        // Deployer Interaction: Pause the contract
-        console.log("Deployer pausing the contract...");
-        vibeText.pause();
-        console.log("Contract paused:", vibeText.paused());
+        // --- 2. AUTHENTICITY VALIDATION (NODE.JS BACKEND) ---
+        vm.startBroadcast(backendPrivateKey);
 
-         vm.stopBroadcast();
+        console.log("-> A user on the frontend just rated a Vibe 5-stars!");
+        console.log(
+            "-> Node.js verified the MongoDB data and is securely signing the payout on-chain..."
+        );
 
-        // Start a NEW broadcast as the user
-        vm.startBroadcast(userPrivateKey);
-
-        // The user makes the requestTune call
-        vm.deal(userAddress, 10 ether); // Ensure user has enough balance for the test
-        vibeText.requestTune{value: 0.2 ether}("hello world", "US");
-        console.log("User balance after requestTune:", address(userAddress).balance);
-        console.log("deployer balance after requestTune:", address(deployerAddress).balance);
-        console.log("contract balance after requestTune:", address(vibeText).balance); 
+        // The backend triggers the micro-reward payload to the validator mapping to the MongoDB object ID
+        vibeText.rewardValidator(
+            validatorAddress,
+            0.05 ether,
+            "mongo_doc_id_99x3"
+        );
 
         vm.stopBroadcast();
 
-        // --------------------
-        
-        console.log("Deployment and test interaction complete!");
+        console.log(
+            "4. SUCCESS: Validator Rewarded 0.05 BOT at",
+            validatorAddress
+        );
+        console.log("Final Treasury Balance:", address(vibeText).balance);
+        console.log("=== Demo Simulation Complete! ===");
     }
 }
