@@ -2,6 +2,7 @@ import Post from '../models/Post.js';
 import User from '../models/User.js';
 import WeeklyVibe from '../models/WeeklyVibe.js';
 import Notification from '../models/Notification.js';
+import { rewardValidator as rewardOnChain } from '../services/blockchain.js';
 
 export const getTrendingVibes = async (req, res) => {
     try {
@@ -231,7 +232,25 @@ export const ratePost = async (req, res) => {
         post.authenticityScore = totalScore / post.authenticityRatings.length;
 
         await post.save();
-        res.status(200).json({ authenticityScore: post.authenticityScore, ratingsCount: post.authenticityRatings.length });
+
+        // --- BOT CHAIN ORACLE: Reward first-time 5-star validators who include a community note ---
+        let txHash = null;
+        const isFirstTimeRating = existingRatingIndex < 0;
+        if (isFirstTimeRating && score === 5 && note && note.trim().length > 0) {
+            // Fetch the rater's wallet address from the DB (link wallet step unlocks this)
+            const rater = await User.findById(req.userId).select('walletAddress').lean();
+            if (rater?.walletAddress) {
+                // Use the MongoDB rating ObjectId as a replay-proof verificationId
+                const ratingId = post.authenticityRatings[post.authenticityRatings.length - 1]._id.toString();
+                txHash = await rewardOnChain(rater.walletAddress, ratingId);
+            }
+        }
+
+        res.status(200).json({ 
+            authenticityScore: post.authenticityScore, 
+            ratingsCount: post.authenticityRatings.length,
+            ...(txHash && { txHash }) // Only include txHash if the reward was processed
+        });
     } catch (error) {
         console.error('Error rating post:', error);
         res.status(500).json({ error: 'Failed to rate post' });
