@@ -1,6 +1,6 @@
 import express from 'express';
 import { requireAuth } from '../middleware/requireAuth.js';
-import { getUserDashboard, getSystemStats, deletePost, getCurrentUser, getSavedPosts, getNorthStarMetric } from '../controller/user-controller.js';
+import { getUserDashboard, getSystemStats, deletePost, getCurrentUser, getSavedPosts, getNorthStarMetric, updateWalletAddress } from '../controller/user-controller.js';
 
 const router = express.Router();
 
@@ -12,6 +12,9 @@ router.get('/dashboard', requireAuth, getUserDashboard);
 
 // GET /api/user/saved — requires auth
 router.get('/saved', requireAuth, getSavedPosts);
+
+// PUT /api/user/wallet — requires auth
+router.put('/wallet', requireAuth, updateWalletAddress);
 
 // GET /api/user/global-stats — public or auth
 router.get('/global-stats', getSystemStats);

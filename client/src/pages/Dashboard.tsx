@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Shield, Users, Image as ImageIcon, Heart, Trash2,
-  Sparkles, AlertCircle, LogOut, BarChart3, RefreshCw, Bookmark
+  Sparkles, AlertCircle, LogOut, BarChart3, RefreshCw, Bookmark, Zap
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useAppKitAccount, useAppKitProvider } from '@reown/appkit/react';
 import api from '../lib/api';
 import { Navigate } from 'react-router-dom';
 
-type TabId = 'vibes' | 'saved' | 'analytics' | 'admin_users' | 'admin_posts' | 'admin_vibe';
+type TabId = 'vibes' | 'saved' | 'analytics' | 'admin_users' | 'admin_posts' | 'admin_vibe' | 'admin_contract';
 
 export default function Dashboard() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -33,8 +34,35 @@ export default function Dashboard() {
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [allPosts, setAllPosts] = useState<any[]>([]);
 
+  // Smart Contract Admin State
+  const [adminAddress, setAdminAddress] = useState('');
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [contractActionLoading, setContractActionLoading] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // AppKit / Web3 Ownership State
+  const { address } = useAppKitAccount();
+  const { walletProvider } = useAppKitProvider<any>('eip155');
+  const [isContractOwner, setIsContractOwner] = useState(false);
+  const contractAddress = "0x79047ED16d320cb0400Ab207e269558Ee9835748"; // VibeText contract address
+
+  useEffect(() => {
+    const checkOwner = async () => {
+      if (!address || !walletProvider) return setIsContractOwner(false);
+      try {
+        const { BrowserProvider, Contract } = await import('ethers');
+        const provider = new BrowserProvider(walletProvider);
+        const contract = new Contract(contractAddress, ["function owner() view returns (address)"], provider);
+        const ownerAddress = await contract.owner();
+        setIsContractOwner(ownerAddress.toLowerCase() === address.toLowerCase());
+      } catch (err) {
+        console.warn("[Blockchain] Could not fetch contract owner:", err);
+      }
+    };
+    checkOwner();
+  }, [address, walletProvider]);
 
   const fetchData = async (tab: TabId) => {
     if (!isAuthenticated) return;
@@ -98,6 +126,39 @@ export default function Dashboard() {
     }
   };
 
+  const handleContractAction = async (action: 'addAdmin' | 'removeAdmin' | 'pause' | 'unpause' | 'withdraw') => {
+    if (!walletProvider) return alert("Wallet not connected via AppKit!");
+    setContractActionLoading(true);
+    try {
+      const { BrowserProvider, Contract, parseEther } = await import('ethers');
+      const provider = new BrowserProvider(walletProvider);
+      const signer = await provider.getSigner();
+
+      const abi = [
+        "function addAdmin(address _admin)",
+        "function removeAdmin(address _admin)",
+        "function pause()",
+        "function unpause()",
+        "function withdraw(uint256 _amount)"
+      ];
+      const contract = new Contract(contractAddress, abi, signer);
+      let tx;
+
+      if (action === 'addAdmin') tx = await contract.addAdmin(adminAddress);
+      else if (action === 'removeAdmin') tx = await contract.removeAdmin(adminAddress);
+      else if (action === 'pause') tx = await contract.pause();
+      else if (action === 'unpause') tx = await contract.unpause();
+      else if (action === 'withdraw') tx = await contract.withdraw(parseEther(withdrawAmount));
+
+      alert(`Transaction submitted! Hash: ${tx.hash}`);
+    } catch (err: any) {
+      console.error(err);
+      alert("Action failed: " + err.message);
+    } finally {
+      setContractActionLoading(false);
+    }
+  };
+
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;
   }
@@ -155,6 +216,9 @@ export default function Dashboard() {
               { id: 'admin_users', label: 'Manage Users', icon: <Users size={18} /> },
               { id: 'admin_posts', label: 'Moderation', icon: <Shield size={18} /> },
               { id: 'admin_vibe', label: 'Schedule Vibe', icon: <Sparkles size={18} /> },
+            ] : []),
+            ...(isContractOwner ? [
+              { id: 'admin_contract', label: 'Smart Contract', icon: <Zap size={18} /> },
             ] : []),
           ] as { id: TabId; label: string; icon: React.ReactNode }[]).map(tab => (
             <button
@@ -579,6 +643,100 @@ export default function Dashboard() {
                     {submittingVibe ? 'Scheduling...' : 'Schedule Vibe Drop'}
                   </button>
                 </form>
+              </div>
+            )}
+
+            {/* ADMIN: SMART CONTRACT */}
+            {activeTab === 'admin_contract' && isContractOwner && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-2xl font-bold text-white flex items-center gap-2"><Zap className="text-orange-400" /> Contract Admin Panel</h3>
+                  <p className="text-slate-400 mt-1">Manage treasury, validators, and contract state directly on-chain</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Treasury & State Control */}
+                  <div className="glassmorphism p-6 rounded-3xl border border-white/5 flex flex-col gap-5 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                    <h4 className="text-lg font-bold text-white mb-2">Fund Management</h4>
+
+                    <div className="flex flex-col gap-2">
+                      <label className="text-slate-300 text-sm font-medium">Withdraw Amount (BOT)</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          value={withdrawAmount}
+                          onChange={(e) => setWithdrawAmount(e.target.value)}
+                          placeholder="0.0"
+                          className="flex-1 bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500 transition-colors"
+                        />
+                        <button
+                          onClick={() => handleContractAction('withdraw')}
+                          disabled={contractActionLoading || !withdrawAmount}
+                          className="bg-orange-600 hover:bg-orange-500 text-white font-bold py-2 px-4 rounded-xl transition-colors disabled:opacity-50 whitespace-nowrap"
+                        >
+                          Withdraw
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="h-px w-full bg-white/5 my-2" />
+
+                    <h4 className="text-lg font-bold text-white mb-2">Emergency State</h4>
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => handleContractAction('pause')}
+                        disabled={contractActionLoading}
+                        className="flex-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold py-3 px-4 rounded-xl border border-red-500/30 transition-colors disabled:opacity-50"
+                      >
+                        Pause Contract
+                      </button>
+                      <button
+                        onClick={() => handleContractAction('unpause')}
+                        disabled={contractActionLoading}
+                        className="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 font-bold py-3 px-4 rounded-xl border border-green-500/30 transition-colors disabled:opacity-50"
+                      >
+                        Unpause
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Oracle Access Control */}
+                  <div className="glassmorphism p-6 rounded-3xl border border-white/5 flex flex-col gap-5 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                    <h4 className="text-lg font-bold text-white mb-2">Oracle Whitelist</h4>
+
+                    <div className="flex flex-col gap-2">
+                      <label className="text-slate-300 text-sm font-medium">Node Backend Wallet Address</label>
+                      <input
+                        type="text"
+                        value={adminAddress}
+                        onChange={(e) => setAdminAddress(e.target.value)}
+                        placeholder="0x..."
+                        className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-purple-500 transition-colors"
+                      />
+                    </div>
+
+                    <div className="flex gap-4 mt-2">
+                      <button
+                        onClick={() => handleContractAction('addAdmin')}
+                        disabled={contractActionLoading || !adminAddress}
+                        className="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50"
+                      >
+                        Add Admin
+                      </button>
+                      <button
+                        onClick={() => handleContractAction('removeAdmin')}
+                        disabled={contractActionLoading || !adminAddress}
+                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl border border-white/10 transition-colors disabled:opacity-50"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </motion.div>

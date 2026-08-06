@@ -14,7 +14,11 @@ contract VibeTextTest is Test {
 
     // Events matching interface
     event TreasuryFunded(address indexed funder, uint256 amount);
-    event ValidatorRewarded(address indexed validator, uint256 rewardAmount, string verificationId);
+    event ValidatorRewarded(
+        address indexed validator,
+        uint256 rewardAmount,
+        string verificationId
+    );
     event AdminAdded(address indexed admin);
     event AdminRemoved(address indexed admin);
     event Withdrawn(address indexed owner, uint256 amount);
@@ -133,6 +137,15 @@ contract VibeTextTest is Test {
         vm.prank(admin);
         vm.expectRevert(IVibeText.TreasuryDepleted.selector);
         vibeText.rewardValidator(validator, 0.5 ether, "doc_3");
+    }
+
+    function testRevert_rewardValidatorAddressZero() public {
+        vm.prank(owner);
+        vibeText.addAdmin(admin);
+
+        vm.prank(admin);
+        vm.expectRevert(IVibeText.AddressZero.selector);
+        vibeText.rewardValidator(address(0), 0.5 ether, "mongo_doc_4");
     }
 
     // --- Pause Tests ---

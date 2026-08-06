@@ -8,6 +8,7 @@ interface IVibeText {
     error TransferFailed();
     error InvalidAmount();
     error AlreadyProcessed();
+    error AddressZero();
 
     event TreasuryFunded(address indexed funder, uint256 amount);
     event ValidatorRewarded(address indexed validator, uint256 rewardAmount, string verificationId);

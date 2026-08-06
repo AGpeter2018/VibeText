@@ -2,7 +2,7 @@ import Post from '../models/Post.js';
 import User from '../models/User.js';
 import WeeklyVibe from '../models/WeeklyVibe.js';
 import Notification from '../models/Notification.js';
-import { rewardValidator as rewardOnChain } from '../services/blockchain.js';
+import { rewardValidator as rewardOnChain } from '../services/hook/writeRewardValidator.js';
 
 export const getTrendingVibes = async (req, res) => {
     try {
@@ -233,21 +233,21 @@ export const ratePost = async (req, res) => {
 
         await post.save();
 
-        // --- BOT CHAIN ORACLE: Reward first-time 5-star validators who include a community note ---
+        // --- BOT CHAIN ORACLE: Reward validators who include a community note ---
         let txHash = null;
-        const isFirstTimeRating = existingRatingIndex < 0;
-        if (isFirstTimeRating && score === 5 && note && note.trim().length > 0) {
+        // Removed `isFirstTimeRating` constraint to allow unlimited testing for the Hackathon Demo
+        if (score === 5 && note && note.trim().length > 0) {
             // Fetch the rater's wallet address from the DB (link wallet step unlocks this)
             const rater = await User.findById(req.userId).select('walletAddress').lean();
             if (rater?.walletAddress) {
-                // Use the MongoDB rating ObjectId as a replay-proof verificationId
-                const ratingId = post.authenticityRatings[post.authenticityRatings.length - 1]._id.toString();
-                txHash = await rewardOnChain(rater.walletAddress, ratingId);
+                // Use a combination of user ID and current timestamp as verification ID to bypass contract AlreadyProcessed errors on subsequent tests
+                const verificationId = `${req.userId}_${Date.now()}`;
+                txHash = await rewardOnChain(rater.walletAddress, verificationId);
             }
         }
 
-        res.status(200).json({ 
-            authenticityScore: post.authenticityScore, 
+        res.status(200).json({
+            authenticityScore: post.authenticityScore,
             ratingsCount: post.authenticityRatings.length,
             ...(txHash && { txHash }) // Only include txHash if the reward was processed
         });
@@ -377,4 +377,52 @@ export const copyPost = async (req, res) => {
         res.status(500).json({ error: 'Failed to track copy action' });
     }
 };
+
+export const getBlockchainStats = async (req, res) => {
+    try {
+        const { getContract, getProvider } = await import('../services/blockchain.js');
+        const contract = getContract();
+        const provider = getProvider();
+
+        if (!contract || !provider) {
+            return res.status(200).json({ available: false });
+        }
+
+        const contractAddress = process.env.VIBETEXT_CONTRACT_ADDRESS;
+
+        // 1. Treasury balance
+        const balanceWei = await provider.getBalance(contractAddress);
+        const balanceBOT = Number(balanceWei) / 1e18;
+
+        // 2. Query ValidatorRewarded events from block 0 to latest
+        const filter = contract.filters.ValidatorRewarded();
+        const events = await contract.queryFilter(filter, 0, 'latest');
+
+        // 3. Aggregate leaderboard: wallet -> { count, totalBOT }
+        const walletMap = {};
+        for (const ev of events) {
+            const addr = ev.args.validator.toLowerCase();
+            const amount = Number(ev.args.rewardAmount) / 1e18;
+            if (!walletMap[addr]) walletMap[addr] = { address: ev.args.validator, count: 0, totalBOT: 0 };
+            walletMap[addr].count += 1;
+            walletMap[addr].totalBOT += amount;
+        }
+
+        const leaderboard = Object.values(walletMap)
+            .sort((a, b) => b.totalBOT - a.totalBOT)
+            .slice(0, 5)
+            .map(v => ({ ...v, totalBOT: v.totalBOT.toFixed(4) }));
+
+        res.status(200).json({
+            available: true,
+            balanceBOT: balanceBOT.toFixed(4),
+            totalRewards: events.length,
+            leaderboard
+        });
+    } catch (error) {
+        console.error('[Blockchain Stats] Error:', error.message);
+        res.status(200).json({ available: false });
+    }
+};
+
 

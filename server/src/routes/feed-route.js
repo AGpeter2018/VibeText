@@ -12,7 +12,8 @@ import {
     getTrendingPosts,
     getMostAuthenticPosts,
     getCurrentWeeklyVibe,
-    copyPost
+    copyPost,
+    getBlockchainStats
 } from '../controller/feed-controller.js';
 
 const router = express.Router();
@@ -28,6 +29,9 @@ router.get('/most-authentic', getMostAuthenticPosts);
 
 // GET /api/feed/weekly-vibe — public, returns current weekly vibe drop
 router.get('/weekly-vibe', getCurrentWeeklyVibe);
+
+// GET /api/feed/blockchain-stats — public, returns treasury balance + leaderboard
+router.get('/blockchain-stats', getBlockchainStats);
 
 // GET /api/feed — public, returns all posts sorted by newest first
 router.get('/', getFeed);

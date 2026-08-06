@@ -12,8 +12,7 @@ export const getCurrentUser = async (req, res) => {
         // Auto-promote admin emails on the fly
         const adminEmails = [
             'adenijipeter2018@gmail.com',
-            'peteradeniji2018@gmail.com',
-            'agpeter2018@gmail.com'
+            'peteradeniji2018@gmail.com'
         ];
         if (user.email && adminEmails.includes(user.email.toLowerCase().trim()) && user.role !== 'admin') {
             user.role = 'admin';
@@ -137,6 +136,21 @@ export const getNorthStarMetric = async (req, res) => {
     } catch (error) {
         console.error('Error calculating North Star metric:', error);
         res.status(500).json({ error: 'Failed to calculate North Star metric' });
+    }
+};
+
+export const updateWalletAddress = async (req, res) => {
+    try {
+        const { walletAddress } = req.body;
+        if (!walletAddress) {
+            return res.status(400).json({ error: 'Wallet address required' });
+        }
+
+        await User.findByIdAndUpdate(req.userId, { walletAddress });
+        res.status(200).json({ message: 'Wallet linked successfully', walletAddress });
+    } catch (error) {
+        console.error('Error saving wallet:', error);
+        res.status(500).json({ error: 'Failed to link wallet address' });
     }
 };
 

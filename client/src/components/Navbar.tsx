@@ -1,3 +1,4 @@
+import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
@@ -12,9 +13,9 @@ interface NavbarProps {
   isLanding?: boolean;
 }
 
-
-
 export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }: NavbarProps) {
+  const { open } = useAppKit()
+  const { address } = useAppKitAccount()
   const { user, isAuthenticated, logout } = useAuth();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,6 +27,13 @@ export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  // Sync connected wallet address to backend
+  useEffect(() => {
+    if (isAuthenticated && address) {
+      api.put('user/wallet', { walletAddress: address }).catch(() => { });
+    }
+  }, [isAuthenticated, address]);
 
   const unreadCount = notifications.filter((n: any) => !n.read).length;
 
@@ -82,6 +90,10 @@ export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }
       navigate(`/feed?q=${encodeURIComponent(searchQuery.trim())}`);
       setSearchQuery('');
     }
+  };
+
+  const handleConnectWallet = async () => {
+    open()
   };
 
   const markAllRead = async () => {
@@ -309,6 +321,25 @@ export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }
                       <Link to="/dashboard" onClick={() => setIsProfileOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8, color: '#cbd5e1', textDecoration: 'none', fontSize: 12, fontWeight: 500 }}>
                         <LayoutDashboard size={14} color="#7c3aed" /> Dashboard
                       </Link>
+
+                      {/* Web3 Wallet Linking (Sleek UI) */}
+                      <button
+                        onClick={() => { setIsProfileOpen(false); handleConnectWallet(); }}
+                        style={{
+                          width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                          padding: '8px 12px', margin: '4px 0', borderRadius: 8,
+                          background: 'linear-gradient(135deg, rgba(246, 133, 27, 0.15), rgba(124, 58, 237, 0.1))',
+                          border: '1px solid rgba(246, 133, 27, 0.3)',
+                          cursor: 'pointer', color: '#f6851b', fontSize: 12, fontWeight: 700
+                        }}
+                        className="hover:scale-[1.02] transition-transform"
+                      >
+                        <Zap size={14} color="#f6851b" />
+                        {
+                          address ? <span style={{ fontSize: 11, color: '#94a3b8' }}>Connected: {address.slice(0, 6)}...{address.slice(-4)}</span> : 'Link Web3 Wallet'
+                        }
+                      </button>
+
                       <button
                         onClick={() => { setIsProfileOpen(false); logout(); }}
                         style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8, background: 'none', border: 'none', cursor: 'pointer', color: '#f87171', fontSize: 12, fontWeight: 500 }}

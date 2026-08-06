@@ -11,6 +11,11 @@ const userSchema = new mongoose.Schema({
         sparse: true,
         unique: true,
     },
+    walletAddress: {
+        type: String,
+        sparse: true,
+        unique: true,
+    },
     name: {
         type: String,
         required: true,
