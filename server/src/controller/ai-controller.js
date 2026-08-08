@@ -1,4 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import Generation from "../models/Generation.js";
+import jwt from "jsonwebtoken";
 
 // Lazy initialization of Gemini client
 const getGeminiClient = () => {
@@ -10,22 +12,35 @@ const getGeminiClient = () => {
 };
 
 const SYSTEM_INSTRUCTION = `
-You are VibeText, an expert linguist specializing in highly accurate regional dialects, local street slang, professional tones, and social vibes.
-Your task is to rewrite the provided [TEXT] into the [VIBE] style.
+You are VibeText, a linguistic expert specializing in regional dialects and social vibes.
+Your task is to rewrite the provided [TEXT] into the [DIALECT] style, AND generate a descriptive image prompt representing this vibe.
 
-CRITICAL RULES:
-1. Preserve the original meaning and sentiment exactly.
-2. Adapt vocabulary, slang, idioms, and sentence structures strictly specific to the requested [VIBE] (e.g. "Nigerian Gen Z", "1920s Mafia", "Corporate Executive").
-3. Apply the vibe according to the [INTENSITY] level provided (1-10, where 10 is the strongest/most exaggerated application of the vibe).
-4. DO NOT explain the changes. Return ONLY the rewritten text.
+RULES:
+1. Preserve the original meaning and sentiment exactly in the rewritten text.
+2. Adapt vocabulary, slang, idioms, and grammatical quirks specific to the dialect.
+3. Generate an 'imagePrompt' that is a highly visual, detailed English description representing the situation and vibe. It should be suitable for an AI image generator.
+4. You MUST return your response as a valid JSON object with EXACTLY two keys: "text" and "imagePrompt". DO NOT return markdown blocks, just raw JSON.
 `;
 
 export const generateContent = async (req, res) => {
     try {
-        const { text, vibe, intensity } = req.body;
+        const { text, dialect, intensity } = req.body;
 
-        if (!text || !vibe) {
-            return res.status(400).json({ error: "Both 'text' and 'vibe' are required" });
+        if (!text || !dialect) {
+            return res.status(400).json({ error: "Both 'text' and 'dialect' are required" });
+        }
+
+        // Try to extract user ID from auth token if present (since generation endpoint is public)
+        let userId = null;
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.split(' ')[1];
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                userId = decoded.userId;
+            } catch (err) {
+                // Token invalid or expired - ignore and proceed as anonymous
+            }
         }
 
         const genAI = getGeminiClient();
@@ -33,17 +48,59 @@ export const generateContent = async (req, res) => {
 
         const prompt = `${SYSTEM_INSTRUCTION}
         
-        [TEXT]: "${text}"
-        [VIBE]: "${vibe}"
-        [INTENSITY]: "${intensity || 5}"`;
+[TEXT]: "${text}"
+[DIALECT]: "${dialect}"
+${intensity ? `[INTENSITY]: "${intensity}"` : ""}
+`;
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
-        const generatedText = response.text();
+        const generatedText = response.text().replace(/```json|```/g, '').trim();
 
-        res.status(200).json({ content: generatedText });
+        const parsed = JSON.parse(generatedText);
+
+        // Log generation in background
+        try {
+            await Generation.create({
+                userId,
+                vibe: dialect,
+                intensity: Number(intensity || 5)
+            });
+        } catch (logErr) {
+            console.error("Failed to log generation:", logErr);
+        }
+
+
+        // Point to our own proxy endpoint to avoid CORS 403 errors from the browser
+        const optimizedPrompt = `${parsed.imagePrompt}, cinematic lighting, highly detailed, aesthetic`;
+        const baseUrl = req.protocol + '://' + req.get('host');
+        const imageUrl = `${baseUrl}/api/image-proxy?prompt=${encodeURIComponent(optimizedPrompt)}`;
+
+        res.status(200).json({ content: parsed.text, imageUrl });
     } catch (error) {
         console.error("Error generating content:", error);
         res.status(500).json({ error: error.message || "Failed to generate content" });
+    }
+};
+
+export const proxyImage = async (req, res) => {
+    try {
+        const { prompt } = req.query;
+        if (!prompt) return res.status(400).json({ error: "prompt is required" });
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=400&nologo=true`;
+
+        const imageRes = await fetch(imageUrl);
+        if (!imageRes.ok) throw new Error("Failed to fetch image from Pollinations");
+
+        const arrayBuffer = await imageRes.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        res.setHeader('Content-Type', 'image/jpeg');
+        res.setHeader('Cache-Control', 'public, max-age=31536000');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.send(buffer);
+    } catch (error) {
+        console.error("Proxy error:", error);
+        res.status(500).json({ error: "Failed to proxy image" });
     }
 };
