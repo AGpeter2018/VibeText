@@ -1,9 +1,13 @@
-import { Contract } from "ethers";
-import { provider } from "./Provider";
-import { VibeText_Abi } from "./Abi";
+import { Contract } from 'ethers'
+import { Abi } from './abi'
+import { provider } from './provider'
 
-export const VibeTextContract = new Contract(
-  import.meta.env.VITE_VIBETEXT_CONTRACT_ADDRESS,
-  VibeText_Abi,
-  provider
-);
+export const vibeTextContract = () => {
+    const address = import.meta.env.VITE_VIBETEXT_CONTRACT_ADDRESS 
+
+    if (!address) {
+       throw new Error("Contract address is undefined. Check your environment variables.");
+    }
+
+    return new Contract(address, Abi, provider)
+}
