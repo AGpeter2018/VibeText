@@ -1,5 +1,5 @@
 import { useAppKitAccount, useAppKitNetwork, useAppKitProvider } from "@reown/appkit/react";
-import { vibeTextContract } from "../../constant/contract";
+import { vibeTextContract } from "../../constant/Contract";
 import toast from "react-hot-toast";
 import { supportedChain } from "../../lib/supportedChain";
 import { useCallback } from "react";

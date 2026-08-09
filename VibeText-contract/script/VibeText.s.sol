@@ -13,7 +13,6 @@ contract DeployVibeText is Script {
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployerAddress = vm.addr(deployerPrivateKey);
-        address newOwner = vm.envOr("NEW_OWNER", address(0));
 
         console.log("Deploying VibeText from:", deployerAddress);
 
@@ -21,15 +20,5 @@ contract DeployVibeText is Script {
         vibeText = new VibeText(deployerAddress);
         console.log("VibeText deployed at:", address(vibeText));
         vm.stopBroadcast();
-
-        if (newOwner != address(0)) {
-            console.log("Nomination pending for new owner:", newOwner);
-
-            vm.startBroadcast(deployerPrivateKey);
-            vibeText.nominateOwner(newOwner);
-            vm.stopBroadcast();
-
-            console.log("Owner nominated. To complete transfer, the new owner must call acceptOwnership().");
-        }
     }
 }

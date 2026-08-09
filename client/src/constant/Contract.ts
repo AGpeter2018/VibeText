@@ -1,6 +1,6 @@
 import { Contract } from 'ethers'
-import { Abi } from './abi'
-import { provider } from './provider'
+import { Abi } from './Abi'
+import { provider } from './Provider'
 
 export const vibeTextContract = () => {
     const address = import.meta.env.VITE_VIBETEXT_CONTRACT_ADDRESS 

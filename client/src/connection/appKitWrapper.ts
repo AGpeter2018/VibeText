@@ -43,7 +43,7 @@ const metadata = {
 };
 
 // 5. Create the AppKit instance with EthersAdapter
-createAppKit({
+const appKit = createAppKit({
   adapters: [new EthersAdapter()],
   networks,
   metadata,
@@ -52,6 +52,8 @@ createAppKit({
     analytics: true,
   },
 });
+
+appKit.switchNetwork(botChain);
 
 export default function AppkitWrapper({ children }: { children: ReactNode }) {
   return createElement('div', null, children);
