@@ -8,6 +8,8 @@ import { useAuth } from '../context/AuthContext';
 import { useAppKitAccount, useAppKitProvider } from '@reown/appkit/react';
 import api from '../lib/api';
 import { Navigate } from 'react-router-dom';
+import { Abi } from '../constant/Abi';
+import toast from 'react-hot-toast';
 
 type TabId = 'vibes' | 'saved' | 'analytics' | 'admin_users' | 'admin_posts' | 'admin_vibe' | 'admin_contract';
 
@@ -46,17 +48,26 @@ export default function Dashboard() {
   const { address } = useAppKitAccount();
   const { walletProvider } = useAppKitProvider<any>('eip155');
   const [isContractOwner, setIsContractOwner] = useState(false);
-  const contractAddress = "0x79047ED16d320cb0400Ab207e269558Ee9835748"; // VibeText contract address
+  const [isPendingContractOwner, setIsPendingContractOwner] = useState(false);
+  const contractAddress = import.meta.env.VITE_VIBETEXT_CONTRACT_ADDRESS;
 
   useEffect(() => {
     const checkOwner = async () => {
-      if (!address || !walletProvider) return setIsContractOwner(false);
+      if (!address || !walletProvider) {
+        setIsContractOwner(false);
+        setIsPendingContractOwner(false);
+        return;
+      }
       try {
         const { BrowserProvider, Contract } = await import('ethers');
         const provider = new BrowserProvider(walletProvider);
-        const contract = new Contract(contractAddress, ["function owner() view returns (address)"], provider);
-        const ownerAddress = await contract.owner();
+        const contract = new Contract(contractAddress, ["function owner() view returns (address)", "function pendingOwner() view returns (address)"], provider);
+        const [ownerAddress, pendingOwnerAddress] = await Promise.all([
+          contract.owner(),
+          contract.pendingOwner()
+        ]);
         setIsContractOwner(ownerAddress.toLowerCase() === address.toLowerCase());
+        setIsPendingContractOwner(pendingOwnerAddress.toLowerCase() === address.toLowerCase());
       } catch (err) {
         console.warn("[Blockchain] Could not fetch contract owner:", err);
       }
@@ -112,7 +123,7 @@ export default function Dashboard() {
       setUserPosts(prev => prev.filter(p => p._id !== id));
       setUserStats(prev => ({ ...prev, totalVibes: prev.totalVibes - 1 }));
     } catch {
-      alert('Failed to delete');
+      toast.error('Failed to delete');
     }
   };
 
@@ -122,26 +133,21 @@ export default function Dashboard() {
       await api.delete(`/admin/post/${id}`);
       setAllPosts(prev => prev.filter(p => p._id !== id));
     } catch {
-      alert('Failed to delete');
+      toast.error('Failed to delete post.');
     }
   };
 
-  const handleContractAction = async (action: 'addAdmin' | 'removeAdmin' | 'pause' | 'unpause' | 'withdraw') => {
-    if (!walletProvider) return alert("Wallet not connected via AppKit!");
+  const [newOwnerAddress, setNewOwnerAddress] = useState('');
+
+  const handleContractAction = async (action: 'addAdmin' | 'removeAdmin' | 'pause' | 'unpause' | 'withdraw' | 'nominateOwner' | 'acceptOwnership') => {
+    if (!walletProvider) return toast.error("Wallet not connected!");
     setContractActionLoading(true);
     try {
       const { BrowserProvider, Contract, parseEther } = await import('ethers');
       const provider = new BrowserProvider(walletProvider);
       const signer = await provider.getSigner();
 
-      const abi = [
-        "function addAdmin(address _admin)",
-        "function removeAdmin(address _admin)",
-        "function pause()",
-        "function unpause()",
-        "function withdraw(uint256 _amount)"
-      ];
-      const contract = new Contract(contractAddress, abi, signer);
+      const contract = new Contract(contractAddress, Abi, signer);
       let tx;
 
       if (action === 'addAdmin') tx = await contract.addAdmin(adminAddress);
@@ -149,11 +155,23 @@ export default function Dashboard() {
       else if (action === 'pause') tx = await contract.pause();
       else if (action === 'unpause') tx = await contract.unpause();
       else if (action === 'withdraw') tx = await contract.withdraw(parseEther(withdrawAmount));
+      else if (action === 'nominateOwner') tx = await contract.nominateOwner(newOwnerAddress);
+      else if (action === 'acceptOwnership') tx = await contract.acceptOwnership();
 
-      alert(`Transaction submitted! Hash: ${tx.hash}`);
+      toast.success(`✅ Transaction submitted! Hash: ${tx.hash.slice(0, 18)}...`);
     } catch (err: any) {
       console.error(err);
-      alert("Action failed: " + err.message);
+      // Decode custom Solidity errors by searching the entire error dump for the 4-byte selector
+      const errDump = JSON.stringify(err) + String(err?.message) + String(err?.data);
+      if (errDump.includes('0x7bfa4b9f') || errDump.includes('NotAdmin')) toast.error('❌ Not Admin — you are not whitelisted.');
+      else if (errDump.includes('0x30cd7471') || errDump.includes('NotOwner')) toast.error('❌ Not Owner — only the contract owner can do this.');
+      else if (errDump.includes('0x1853971c') || errDump.includes('NotPendingOwner')) toast.error('❌ Not Pending Owner — you have not been nominated.');
+      else if (errDump.includes('0xb502adf5') || errDump.includes('TreasuryDepleted')) toast.error('❌ Treasury Depleted — insufficient contract balance.');
+      else if (errDump.includes('0x2c5211c6') || errDump.includes('InvalidAmount')) toast.error('❌ Invalid Amount — amount must be > zero.');
+      else if (errDump.includes('0x9fabe1c1') || errDump.includes('AddressZero')) toast.error('❌ Address Zero — cannot use the zero address.');
+      else if (errDump.includes('0x57eee766') || errDump.includes('AlreadyProcessed')) toast.error('❌ Already Processed — this request was already processed.');
+      else if (errDump.includes('0x90b8ec18') || errDump.includes('TransferFailed')) toast.error('❌ Transfer Failed — the native token transfer failed.');
+      else toast.error("❌ Action failed: " + (err.reason || err.shortMessage || err.message || "Unknown error"));
     } finally {
       setContractActionLoading(false);
     }
@@ -217,7 +235,7 @@ export default function Dashboard() {
               { id: 'admin_posts', label: 'Moderation', icon: <Shield size={18} /> },
               { id: 'admin_vibe', label: 'Schedule Vibe', icon: <Sparkles size={18} /> },
             ] : []),
-            ...(isContractOwner ? [
+            ...(isContractOwner || isPendingContractOwner ? [
               { id: 'admin_contract', label: 'Smart Contract', icon: <Zap size={18} /> },
             ] : []),
           ] as { id: TabId; label: string; icon: React.ReactNode }[]).map(tab => (
@@ -557,7 +575,7 @@ export default function Dashboard() {
                   onSubmit={async (e) => {
                     e.preventDefault();
                     if (!vibeName || !description || !weekStart || !weekEnd) {
-                      alert('Please fill out all fields.');
+                      toast.error('Please fill out all fields.');
                       return;
                     }
                     setSubmittingVibe(true);
@@ -576,7 +594,7 @@ export default function Dashboard() {
                       setWeekEnd('');
                     } catch (err: any) {
                       const msg = err?.response?.data?.error || err?.message || 'Failed to schedule weekly vibe';
-                      alert(msg);
+                      toast.error(msg);
                     } finally {
                       setSubmittingVibe(false);
                     }
@@ -647,96 +665,136 @@ export default function Dashboard() {
             )}
 
             {/* ADMIN: SMART CONTRACT */}
-            {activeTab === 'admin_contract' && isContractOwner && (
+            {activeTab === 'admin_contract' && (isContractOwner || isPendingContractOwner) && (
               <div className="space-y-6">
                 <div>
                   <h3 className="text-2xl font-bold text-white flex items-center gap-2"><Zap className="text-orange-400" /> Contract Admin Panel</h3>
                   <p className="text-slate-400 mt-1">Manage treasury, validators, and contract state directly on-chain</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Treasury & State Control */}
-                  <div className="glassmorphism p-6 rounded-3xl border border-white/5 flex flex-col gap-5 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
+                {isPendingContractOwner && (
+                  <div className="glassmorphism p-6 rounded-3xl border border-green-500/20 bg-green-500/10 flex items-center justify-between">
+                    <div>
+                      <h4 className="text-lg font-bold text-white">Pending Ownership Transfer</h4>
+                      <p className="text-sm text-green-300">You have been nominated to own the VibeText contract.</p>
+                    </div>
+                    <button
+                      onClick={() => handleContractAction('acceptOwnership')}
+                      disabled={contractActionLoading}
+                      className="bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-6 rounded-xl transition-colors shadow-lg disabled:opacity-50"
+                    >
+                      Accept Ownership
+                    </button>
+                  </div>
+                )}
 
-                    <h4 className="text-lg font-bold text-white mb-2">Fund Management</h4>
+                {isContractOwner && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Treasury & State Control */}
+                    <div className="glassmorphism p-6 rounded-3xl border border-white/5 flex flex-col gap-5 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
 
-                    <div className="flex flex-col gap-2">
-                      <label className="text-slate-300 text-sm font-medium">Withdraw Amount (BOT)</label>
-                      <div className="flex gap-2">
-                        <input
-                          type="number"
-                          value={withdrawAmount}
-                          onChange={(e) => setWithdrawAmount(e.target.value)}
-                          placeholder="0.0"
-                          className="flex-1 bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500 transition-colors"
-                        />
+                      <h4 className="text-lg font-bold text-white mb-2">Fund Management</h4>
+
+                      <div className="flex flex-col gap-2">
+                        <label className="text-slate-300 text-sm font-medium">Withdraw Amount (BOT)</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            value={withdrawAmount}
+                            onChange={(e) => setWithdrawAmount(e.target.value)}
+                            placeholder="0.0"
+                            className="flex-1 bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500 transition-colors"
+                          />
+                          <button
+                            onClick={() => handleContractAction('withdraw')}
+                            disabled={contractActionLoading || !withdrawAmount}
+                            className="bg-orange-600 hover:bg-orange-500 text-white font-bold py-2 px-4 rounded-xl transition-colors disabled:opacity-50 whitespace-nowrap"
+                          >
+                            Withdraw
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="h-px w-full bg-white/5 my-2" />
+
+                      <h4 className="text-lg font-bold text-white mb-2">Emergency State</h4>
+                      <div className="flex gap-4">
                         <button
-                          onClick={() => handleContractAction('withdraw')}
-                          disabled={contractActionLoading || !withdrawAmount}
-                          className="bg-orange-600 hover:bg-orange-500 text-white font-bold py-2 px-4 rounded-xl transition-colors disabled:opacity-50 whitespace-nowrap"
+                          onClick={() => handleContractAction('pause')}
+                          disabled={contractActionLoading}
+                          className="flex-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold py-3 px-4 rounded-xl border border-red-500/30 transition-colors disabled:opacity-50"
                         >
-                          Withdraw
+                          Pause Contract
+                        </button>
+                        <button
+                          onClick={() => handleContractAction('unpause')}
+                          disabled={contractActionLoading}
+                          className="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 font-bold py-3 px-4 rounded-xl border border-green-500/30 transition-colors disabled:opacity-50"
+                        >
+                          Unpause
                         </button>
                       </div>
                     </div>
 
-                    <div className="h-px w-full bg-white/5 my-2" />
+                    {/* Oracle Access Control */}
+                    <div className="glassmorphism p-6 rounded-3xl border border-white/5 flex flex-col gap-5 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
-                    <h4 className="text-lg font-bold text-white mb-2">Emergency State</h4>
-                    <div className="flex gap-4">
-                      <button
-                        onClick={() => handleContractAction('pause')}
-                        disabled={contractActionLoading}
-                        className="flex-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold py-3 px-4 rounded-xl border border-red-500/30 transition-colors disabled:opacity-50"
-                      >
-                        Pause Contract
-                      </button>
-                      <button
-                        onClick={() => handleContractAction('unpause')}
-                        disabled={contractActionLoading}
-                        className="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 font-bold py-3 px-4 rounded-xl border border-green-500/30 transition-colors disabled:opacity-50"
-                      >
-                        Unpause
-                      </button>
+                      <h4 className="text-lg font-bold text-white mb-2">Oracle Whitelist</h4>
+
+                      <div className="flex flex-col gap-2">
+                        <label className="text-slate-300 text-sm font-medium">Node Backend Wallet Address</label>
+                        <input
+                          type="text"
+                          value={adminAddress}
+                          onChange={(e) => setAdminAddress(e.target.value)}
+                          placeholder="0x..."
+                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-purple-500 transition-colors"
+                        />
+                      </div>
+
+                      <div className="flex gap-4 mt-2">
+                        <button
+                          onClick={() => handleContractAction('addAdmin')}
+                          disabled={contractActionLoading || !adminAddress}
+                          className="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50"
+                        >
+                          Add Admin
+                        </button>
+                        <button
+                          onClick={() => handleContractAction('removeAdmin')}
+                          disabled={contractActionLoading || !adminAddress}
+                          className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl border border-white/10 transition-colors disabled:opacity-50"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Ownership Transfer */}
+                    <div className="glassmorphism p-6 rounded-3xl border border-white/5 flex flex-col gap-5 relative overflow-hidden md:col-span-2">
+                      <h4 className="text-lg font-bold text-white mb-2">Transfer Ownership</h4>
+                      <p className="text-sm text-slate-400 -mt-3">Nominate a new wallet address to take over full ownership of the smart contract.</p>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newOwnerAddress}
+                          onChange={(e) => setNewOwnerAddress(e.target.value)}
+                          placeholder="0x..."
+                          className="flex-1 bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-red-500 transition-colors"
+                        />
+                        <button
+                          onClick={() => handleContractAction('nominateOwner')}
+                          disabled={contractActionLoading || !newOwnerAddress}
+                          className="bg-red-600/80 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-xl transition-colors disabled:opacity-50"
+                        >
+                          Nominate
+                        </button>
+                      </div>
                     </div>
                   </div>
-
-                  {/* Oracle Access Control */}
-                  <div className="glassmorphism p-6 rounded-3xl border border-white/5 flex flex-col gap-5 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
-
-                    <h4 className="text-lg font-bold text-white mb-2">Oracle Whitelist</h4>
-
-                    <div className="flex flex-col gap-2">
-                      <label className="text-slate-300 text-sm font-medium">Node Backend Wallet Address</label>
-                      <input
-                        type="text"
-                        value={adminAddress}
-                        onChange={(e) => setAdminAddress(e.target.value)}
-                        placeholder="0x..."
-                        className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-purple-500 transition-colors"
-                      />
-                    </div>
-
-                    <div className="flex gap-4 mt-2">
-                      <button
-                        onClick={() => handleContractAction('addAdmin')}
-                        disabled={contractActionLoading || !adminAddress}
-                        className="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50"
-                      >
-                        Add Admin
-                      </button>
-                      <button
-                        onClick={() => handleContractAction('removeAdmin')}
-                        disabled={contractActionLoading || !adminAddress}
-                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl border border-white/10 transition-colors disabled:opacity-50"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
             )}
           </motion.div>
