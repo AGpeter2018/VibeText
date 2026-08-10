@@ -9,6 +9,7 @@ import { AuthModal } from '../components/AuthModal';
 import Avatar from 'boring-avatars';
 import { Sparkles, TrendingUp, Heart, Share2, Flame, Plus, Clock, MessageCircle, Copy, Check, Bookmark, Star, Shield, Zap } from 'lucide-react';
 import { Abi } from '../constant/Abi';
+import toast from 'react-hot-toast';
 
 function timeAgo(dateInput: string) {
   const date = new Date(dateInput);
@@ -160,7 +161,8 @@ export default function Feed() {
 
   const handleFundTreasury = async () => {
     if (!walletProvider) {
-      return alert("Please connect your Web3 wallet via the profile menu to fund the treasury!");
+      toast.error("Please connect your Web3 wallet via the profile menu to fund the treasury!");
+      return
     }
     try {
       const { BrowserProvider, Contract, parseEther } = await import('ethers');
@@ -169,15 +171,16 @@ export default function Feed() {
       const contractAddress = import.meta.env.VITE_VIBETEXT_CONTRACT_ADDRESS;
 
       if (!contractAddress) {
-        throw new Error('Contract address is not configured.');
+        toast.error('Contract address is not configured.');
+        return
       }
 
       const contract = new Contract(contractAddress, Abi, signer);
       const tx = await contract.fundTreasury({ value: parseEther(fundingAmount) });
-      alert(`Funding submitted! TxHash: ${tx.hash}`);
+      toast.success(`Funding submitted! TxHash: ${tx.hash}`);
     } catch (err: any) {
       console.error(err);
-      alert("Funding failed: " + err.message);
+      toast.error("Funding failed: " + err.message);
     }
   };
 
@@ -280,7 +283,7 @@ export default function Feed() {
         await navigator.share(shareData);
       } else {
         await navigator.clipboard.writeText(`${shareData.text}\n${shareData.url}`);
-        alert('Vibe text and link copied to clipboard!');
+        toast.success('Vibe text and link copied to clipboard!');
       }
     } catch (err: any) {
       console.error('[Share] share error:', err);
@@ -337,7 +340,7 @@ export default function Feed() {
       setActiveReplyId(null);
     } catch (err) {
       console.error('Failed to reply', err);
-      alert('Failed to post reply.');
+      toast.error('Failed to post reply.');
     } finally {
       setIsReplying(false);
     }
@@ -691,7 +694,7 @@ export default function Feed() {
                     <button
                       onClick={() => {
                         const pendingStar = Number(ratingNotes[`${post._id}_star`]);
-                        if (!pendingStar) return alert('Please select a star rating first!');
+                        if (!pendingStar) return toast.error('Please select a star rating first!');
                         handleRatePost(post._id, pendingStar);
                         setRatingNotes(prev => ({ ...prev, [`${post._id}_star`]: '' }));
                       }}

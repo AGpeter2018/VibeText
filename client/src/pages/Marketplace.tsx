@@ -6,6 +6,7 @@ import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { AuthModal } from '../components/AuthModal';
 import Avatar from 'boring-avatars';
+import toast from 'react-hot-toast';
 
 export default function Marketplace() {
   const [requests, setRequests] = useState<any[]>([]);
@@ -37,7 +38,7 @@ export default function Marketplace() {
 
   const handleUpvote = async (id: string) => {
     if (!isAuthenticated) return setIsAuthOpen(true);
-    
+
     try {
       const res = await api.post(`/requests/${id}/upvote`);
       setRequests(requests.map(req => {
@@ -71,7 +72,7 @@ export default function Marketplace() {
       fetchRequests(); // Reload
     } catch (err) {
       console.error('Failed to create request', err);
-      alert('Failed to submit request');
+      toast.error('Failed to submit request');
     } finally {
       setIsSubmitting(false);
     }
@@ -85,14 +86,14 @@ export default function Marketplace() {
           Vibe Request Marketplace
         </h1>
         <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-          Need a specific vibe but can't find it? Request it here. 
+          Need a specific vibe but can't find it? Request it here.
           The community will upvote the best requests, and creators can fulfill them!
         </p>
       </div>
 
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-white">Top Requests</h2>
-        <button 
+        <button
           onClick={() => isAuthenticated ? setShowNewRequest(!showNewRequest) : setIsAuthOpen(true)}
           className="bg-primary-600 hover:bg-primary-500 text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2"
         >
@@ -102,7 +103,7 @@ export default function Marketplace() {
 
       <AnimatePresence>
         {showNewRequest && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -113,8 +114,8 @@ export default function Marketplace() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-slate-300 mb-1">Short Title</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
                     placeholder="e.g. Sales pitch for Lagos merchants"
@@ -124,7 +125,7 @@ export default function Marketplace() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-300 mb-1">Details</label>
-                  <textarea 
+                  <textarea
                     value={newDescription}
                     onChange={(e) => setNewDescription(e.target.value)}
                     placeholder="Describe exactly what you are looking for..."
@@ -132,7 +133,7 @@ export default function Marketplace() {
                     required
                   />
                 </div>
-                <button 
+                <button
                   type="submit"
                   disabled={isSubmitting}
                   className="w-full bg-accent-600 hover:bg-accent-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg disabled:opacity-50"
@@ -162,7 +163,7 @@ export default function Marketplace() {
             const hasUpvoted = req.upvotes?.includes(user?._id);
 
             return (
-              <motion.div 
+              <motion.div
                 key={req._id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -171,7 +172,7 @@ export default function Marketplace() {
               >
                 {/* Upvote Button Column */}
                 <div className="flex flex-col items-center justify-center shrink-0">
-                  <button 
+                  <button
                     onClick={() => handleUpvote(req._id)}
                     className={`flex flex-col items-center justify-center w-14 h-16 rounded-2xl transition-all ${hasUpvoted ? 'bg-primary-500/20 text-primary-400 border border-primary-500/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-white/5'}`}
                   >
@@ -184,7 +185,7 @@ export default function Marketplace() {
                 <div className="flex-1 flex flex-col justify-center">
                   <h3 className="text-xl font-bold text-white mb-2">{req.title}</h3>
                   <p className="text-slate-400 text-sm leading-relaxed mb-4">{req.description}</p>
-                  
+
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {req.authorId?.picture ? (
@@ -197,7 +198,7 @@ export default function Marketplace() {
                       </span>
                     </div>
 
-                    <button 
+                    <button
                       onClick={() => navigate(`/tune?requestId=${req._id}&requestTitle=${encodeURIComponent(req.title)}`)}
                       className="bg-white/10 hover:bg-white/20 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors flex items-center gap-2"
                     >

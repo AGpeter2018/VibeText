@@ -28,7 +28,13 @@ const startServer = async () => {
         const httpServer = createServer(app);
         const io = new Server(httpServer, {
             cors: {
-                origin: process.env.CLIENT_URL || "http://localhost:5173",
+                origin: [
+                    "http://localhost:5173",
+                    "http://localhost:5174",
+                    "http://127.0.0.1:5173",
+                    "http://127.0.0.1:5174",
+                    process.env.CLIENT_URL
+                ].filter(Boolean),
                 methods: ["GET", "POST"]
             }
         });

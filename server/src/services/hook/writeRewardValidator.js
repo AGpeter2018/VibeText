@@ -1,6 +1,7 @@
 import { ethers } from 'ethers';
 import { getContract } from '../blockchain.js';
 import { DEFAULT_REWARD_WEI } from '../Constant/Reward.js';
+import { decodeContractError } from '../helper/errorHandler.js';
 
 export async function rewardValidator(walletAddress, verificationId, rewardWei = DEFAULT_REWARD_WEI) {
     const contract = getContract();
@@ -18,7 +19,8 @@ export async function rewardValidator(walletAddress, verificationId, rewardWei =
         console.log(`[Blockchain] ✅ Reward confirmed! TxHash: ${receipt.hash}`);
         return receipt.hash;
     } catch (err) {
-        console.error(`[Blockchain] ❌ Failed to reward validator: ${err.message}`);
+        const message = await decodeContractError(err);
+        console.error(`[Blockchain] ❌ Failed to reward validator: ${message}`);
         return null;
     }
 }

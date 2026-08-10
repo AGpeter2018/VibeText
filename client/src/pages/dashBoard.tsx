@@ -9,6 +9,7 @@ import { useAppKitAccount, useAppKitProvider } from '@reown/appkit/react';
 import api from '../lib/api';
 import { Navigate } from 'react-router-dom';
 import { Abi } from '../constant/Abi';
+import toast from 'react-hot-toast';
 
 type TabId = 'vibes' | 'saved' | 'analytics' | 'admin_users' | 'admin_posts' | 'admin_vibe' | 'admin_contract';
 
@@ -122,7 +123,7 @@ export default function Dashboard() {
       setUserPosts(prev => prev.filter(p => p._id !== id));
       setUserStats(prev => ({ ...prev, totalVibes: prev.totalVibes - 1 }));
     } catch {
-      alert('Failed to delete');
+      toast.error('Failed to delete');
     }
   };
 
@@ -132,14 +133,14 @@ export default function Dashboard() {
       await api.delete(`/admin/post/${id}`);
       setAllPosts(prev => prev.filter(p => p._id !== id));
     } catch {
-      alert('Failed to delete');
+      toast.error('Failed to delete post.');
     }
   };
 
   const [newOwnerAddress, setNewOwnerAddress] = useState('');
 
   const handleContractAction = async (action: 'addAdmin' | 'removeAdmin' | 'pause' | 'unpause' | 'withdraw' | 'nominateOwner' | 'acceptOwnership') => {
-    if (!walletProvider) return alert("Wallet not connected via AppKit!");
+    if (!walletProvider) return toast.error("Wallet not connected!");
     setContractActionLoading(true);
     try {
       const { BrowserProvider, Contract, parseEther } = await import('ethers');
@@ -157,10 +158,20 @@ export default function Dashboard() {
       else if (action === 'nominateOwner') tx = await contract.nominateOwner(newOwnerAddress);
       else if (action === 'acceptOwnership') tx = await contract.acceptOwnership();
 
-      alert(`Transaction submitted! Hash: ${tx.hash}`);
+      toast.success(`✅ Transaction submitted! Hash: ${tx.hash.slice(0, 18)}...`);
     } catch (err: any) {
       console.error(err);
-      alert("Action failed: " + err.message);
+      // Decode custom Solidity errors by searching the entire error dump for the 4-byte selector
+      const errDump = JSON.stringify(err) + String(err?.message) + String(err?.data);
+      if (errDump.includes('0x7bfa4b9f') || errDump.includes('NotAdmin')) toast.error('❌ Not Admin — you are not whitelisted.');
+      else if (errDump.includes('0x30cd7471') || errDump.includes('NotOwner')) toast.error('❌ Not Owner — only the contract owner can do this.');
+      else if (errDump.includes('0x1853971c') || errDump.includes('NotPendingOwner')) toast.error('❌ Not Pending Owner — you have not been nominated.');
+      else if (errDump.includes('0xb502adf5') || errDump.includes('TreasuryDepleted')) toast.error('❌ Treasury Depleted — insufficient contract balance.');
+      else if (errDump.includes('0x2c5211c6') || errDump.includes('InvalidAmount')) toast.error('❌ Invalid Amount — amount must be > zero.');
+      else if (errDump.includes('0x9fabe1c1') || errDump.includes('AddressZero')) toast.error('❌ Address Zero — cannot use the zero address.');
+      else if (errDump.includes('0x57eee766') || errDump.includes('AlreadyProcessed')) toast.error('❌ Already Processed — this request was already processed.');
+      else if (errDump.includes('0x90b8ec18') || errDump.includes('TransferFailed')) toast.error('❌ Transfer Failed — the native token transfer failed.');
+      else toast.error("❌ Action failed: " + (err.reason || err.shortMessage || err.message || "Unknown error"));
     } finally {
       setContractActionLoading(false);
     }
@@ -564,7 +575,7 @@ export default function Dashboard() {
                   onSubmit={async (e) => {
                     e.preventDefault();
                     if (!vibeName || !description || !weekStart || !weekEnd) {
-                      alert('Please fill out all fields.');
+                      toast.error('Please fill out all fields.');
                       return;
                     }
                     setSubmittingVibe(true);
@@ -583,7 +594,7 @@ export default function Dashboard() {
                       setWeekEnd('');
                     } catch (err: any) {
                       const msg = err?.response?.data?.error || err?.message || 'Failed to schedule weekly vibe';
-                      alert(msg);
+                      toast.error(msg);
                     } finally {
                       setSubmittingVibe(false);
                     }
