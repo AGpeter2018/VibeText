@@ -7,7 +7,7 @@ import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { AuthModal } from '../components/AuthModal';
 import Avatar from 'boring-avatars';
-import { Sparkles, TrendingUp, Heart, Share2, Flame, Plus, Clock, MessageCircle, Copy, Check, Bookmark, Star, Shield, Zap } from 'lucide-react';
+import { Sparkles, TrendingUp, Heart, Share2, Flame, Plus, Clock, MessageCircle, Copy, Check, Bookmark, Shield, Zap } from 'lucide-react';
 import { Abi } from '../constant/Abi';
 import toast from 'react-hot-toast';
 
