@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import api from '../lib/api';
 import { ResultCard } from '../components/ResultCard';
 import { useSearchParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 export default function Tune() {
   const [searchParams] = useSearchParams();
@@ -28,7 +29,7 @@ export default function Tune() {
       setImageUrl(res.data.imageUrl);
     } catch (err) {
       console.error(err);
-      alert('Failed to tune text. Please try again.');
+      toast.error('Failed to tune text. Please try again.');
     } finally {
       setIsLoading(false);
     }

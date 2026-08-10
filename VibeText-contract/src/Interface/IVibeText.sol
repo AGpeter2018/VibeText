@@ -9,13 +9,19 @@ interface IVibeText {
     error InvalidAmount();
     error AlreadyProcessed();
     error AddressZero();
+    error ReentrantCall();
+    error NotPendingOwner();
 
     event TreasuryFunded(address indexed funder, uint256 amount);
     event ValidatorRewarded(address indexed validator, uint256 rewardAmount, string verificationId);
     event AdminAdded(address indexed admin);
     event AdminRemoved(address indexed admin);
     event Withdrawn(address indexed owner, uint256 amount);
+    event OwnerChanged(address indexed previousOwner, address indexed newOwner);
+    event OwnerAccepted(address indexed newOwner);
 
+    function nominateOwner(address _newOwner) external;
+    function acceptOwnership() external;
     function fundTreasury() external payable;
     function rewardValidator(address _validator, uint256 _amount, string memory _verificationId) external;
     function addAdmin(address _admin) external;

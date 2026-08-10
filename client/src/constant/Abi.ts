@@ -1,36 +1,44 @@
-export const VibeText_Abi = [
-  // Custom Errors
-  { type: "error", name: "AlreadyProcessed", inputs: [] },
-  { type: "error", name: "InvalidAmount", inputs: [] },
-  { type: "error", name: "NotAdmin", inputs: [] },
-  { type: "error", name: "NotOwner", inputs: [] },
-  { type: "error", name: "TransferFailed", inputs: [] },
-  { type: "error", name: "TreasuryDepleted", inputs: [] },
+export const Abi = [
+  // Constructor
+  "constructor(address _owner)",
+
+  // Errors
+  "error AddressZero()",
+  "error AlreadyProcessed()",
+  "error InvalidAmount()",
+  "error NotAdmin()",
+  "error NotOwner()",
+  "error NotPendingOwner()",
+  "error ReentrantCall()",
+  "error TransferFailed()",
+  "error TreasuryDepleted()",
 
   // Events
-  { type: "event", name: "AdminAdded", inputs: [{ name: "admin", type: "address", indexed: true }] },
-  { type: "event", name: "AdminRemoved", inputs: [{ name: "admin", type: "address", indexed: true }] },
-  { type: "event", name: "Paused", inputs: [{ name: "account", type: "address", indexed: false }] },
-  { type: "event", name: "TreasuryFunded", inputs: [{ name: "funder", type: "address", indexed: true }, { name: "amount", type: "uint256", indexed: false }] },
-  { type: "event", name: "Unpaused", inputs: [{ name: "account", type: "address", indexed: false }] },
-  { type: "event", name: "ValidatorRewarded", inputs: [{ name: "validator", type: "address", indexed: true }, { name: "rewardAmount", type: "uint256", indexed: false }, { name: "verificationId", type: "string", indexed: false }] },
-  { type: "event", name: "Withdrawn", inputs: [{ name: "owner", type: "address", indexed: true }, { name: "amount", type: "uint256", indexed: false }] },
+  "event AdminAdded(address indexed admin)",
+  "event AdminRemoved(address indexed admin)",
+  "event OwnerAccepted(address indexed newOwner)",
+  "event OwnerChanged(address indexed previousOwner, address indexed newOwner)",
+  "event Paused(address account)",
+  "event TreasuryFunded(address indexed funder, uint256 amount)",
+  "event Unpaused(address account)",
+  "event ValidatorRewarded(address indexed validator, uint256 rewardAmount, string verificationId)",
+  "event Withdrawn(address indexed owner, uint256 amount)",
 
-  // Read-Only Functions (View)
-  { type: "function", name: "admins", stateMutability: "view", inputs: [{ name: "", type: "address" }], outputs: [{ type: "bool" }] },
-  { type: "function", name: "owner", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
-  { type: "function", name: "paused", stateMutability: "view", inputs: [], outputs: [{ type: "bool" }] },
-  { type: "function", name: "processedVerifications", stateMutability: "view", inputs: [{ name: "", type: "string" }], outputs: [{ type: "bool" }] },
+  // Read-only functions
+  "function admins(address) view returns (bool)",
+  "function owner() view returns (address)",
+  "function paused() view returns (bool)",
+  "function pendingOwner() view returns (address)",
+  "function processedVerifications(string) view returns (bool)",
 
-  // State-Changing Functions
-  { type: "function", name: "addAdmin", stateMutability: "nonpayable", inputs: [{ name: "_admin", type: "address" }], outputs: [] },
-  { type: "function", name: "fundTreasury", stateMutability: "payable", inputs: [], outputs: [] },
-  { type: "function", name: "pause", stateMutability: "nonpayable", inputs: [], outputs: [] },
-  { type: "function", name: "removeAdmin", stateMutability: "nonpayable", inputs: [{ name: "_admin", type: "address" }], outputs: [] },
-  { type: "function", name: "rewardValidator", stateMutability: "nonpayable", inputs: [{ name: "_validator", type: "address" }, { name: "_amount", type: "uint256" }, { name: "_verificationId", type: "string" }], outputs: [] },
-  { type: "function", name: "unpause", stateMutability: "nonpayable", inputs: [], outputs: [] },
-  { type: "function", name: "withdraw", stateMutability: "nonpayable", inputs: [{ name: "_amount", type: "uint256" }], outputs: [] },
-
-  // Receive Ether
-  { type: "receive", stateMutability: "payable" },
-] as const;
+  // State-changing functions
+  "function acceptOwnership()",
+  "function addAdmin(address _admin)",
+  "function fundTreasury() payable",
+  "function nominateOwner(address _newOwner)",
+  "function pause()",
+  "function removeAdmin(address _admin)",
+  "function rewardValidator(address _validator, uint256 _amount, string _verificationId)",
+  "function unpause()",
+  "function withdraw(uint256 _amount)"
+];

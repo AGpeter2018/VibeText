@@ -1,10 +1,29 @@
 import { ethers } from 'ethers';
 
-// --- Minimal ABI for the oracle (only functions we call from the backend) ---
+// --- ABI for the current VibeText contract surface used by the backend oracle ---
 const VIBETEXT_ABI = [
-    "function rewardValidator(address _validator, uint256 _amount, string memory _verificationId) public",
+    "function acceptOwnership() public",
+    "function addAdmin(address _admin) public",
     "function admins(address) public view returns (bool)",
-    "event ValidatorRewarded(address indexed validator, uint256 rewardAmount, string verificationId)"
+    "function fundTreasury() public payable",
+    "function nominateOwner(address _newOwner) public",
+    "function owner() public view returns (address)",
+    "function pause() public",
+    "function pendingOwner() public view returns (address)",
+    "function processedVerifications(string) public view returns (bool)",
+    "function removeAdmin(address _admin) public",
+    "function rewardValidator(address _validator, uint256 _amount, string memory _verificationId) public",
+    "function unpause() public",
+    "function withdraw(uint256 _amount) public",
+    "event AdminAdded(address indexed admin)",
+    "event AdminRemoved(address indexed admin)",
+    "event OwnerAccepted(address indexed newOwner)",
+    "event OwnerChanged(address indexed previousOwner, address indexed newOwner)",
+    "event Paused(address account)",
+    "event TreasuryFunded(address indexed funder, uint256 amount)",
+    "event Unpaused(address account)",
+    "event ValidatorRewarded(address indexed validator, uint256 rewardAmount, string verificationId)",
+    "event Withdrawn(address indexed owner, uint256 amount)"
 ];
 
 // --- Lazy initialization: only set up provider/signer/contract on first call ---

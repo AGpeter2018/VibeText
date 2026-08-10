@@ -7,7 +7,9 @@ import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { AuthModal } from '../components/AuthModal';
 import Avatar from 'boring-avatars';
-import { Sparkles, TrendingUp, Heart, Share2, Flame, Plus, Clock, MessageCircle, Copy, Check, Bookmark, Star, Shield, Zap } from 'lucide-react';
+import { Sparkles, TrendingUp, Heart, Share2, Flame, Plus, Clock, MessageCircle, Copy, Check, Bookmark, Shield, Zap } from 'lucide-react';
+import { Abi } from '../constant/Abi';
+import toast from 'react-hot-toast';
 
 function timeAgo(dateInput: string) {
   const date = new Date(dateInput);
@@ -159,21 +161,26 @@ export default function Feed() {
 
   const handleFundTreasury = async () => {
     if (!walletProvider) {
-      return alert("Please connect your Web3 wallet via the profile menu to fund the treasury!");
+      toast.error("Please connect your Web3 wallet via the profile menu to fund the treasury!");
+      return
     }
     try {
-      const { BrowserProvider } = await import('ethers');
+      const { BrowserProvider, Contract, parseEther } = await import('ethers');
       const provider = new BrowserProvider(walletProvider as any);
       const signer = await provider.getSigner();
+      const contractAddress = import.meta.env.VITE_VIBETEXT_CONTRACT_ADDRESS;
 
-      const tx = await signer.sendTransaction({
-        to: "0x79047ED16d320cb0400Ab207e269558Ee9835748",
-        value: '0x' + (Number(fundingAmount) * 1e18).toString(16)
-      });
-      alert(`Funding submitted! TxHash: ${tx.hash}`);
+      if (!contractAddress) {
+        toast.error('Contract address is not configured.');
+        return
+      }
+
+      const contract = new Contract(contractAddress, Abi, signer);
+      const tx = await contract.fundTreasury({ value: parseEther(fundingAmount) });
+      toast.success(`Funding submitted! TxHash: ${tx.hash}`);
     } catch (err: any) {
       console.error(err);
-      alert("Funding failed: " + err.message);
+      toast.error("Funding failed: " + err.message);
     }
   };
 
@@ -276,7 +283,7 @@ export default function Feed() {
         await navigator.share(shareData);
       } else {
         await navigator.clipboard.writeText(`${shareData.text}\n${shareData.url}`);
-        alert('Vibe text and link copied to clipboard!');
+        toast.success('Vibe text and link copied to clipboard!');
       }
     } catch (err: any) {
       console.error('[Share] share error:', err);
@@ -333,7 +340,7 @@ export default function Feed() {
       setActiveReplyId(null);
     } catch (err) {
       console.error('Failed to reply', err);
-      alert('Failed to post reply.');
+      toast.error('Failed to post reply.');
     } finally {
       setIsReplying(false);
     }
@@ -479,6 +486,75 @@ export default function Feed() {
           </div>
         </div>
 
+        {/* Mobile BOT Chain Web3 Features (Only visible < lg) */}
+        {blockchainStats && (
+          <div className="lg:hidden w-full flex flex-col gap-3 mb-2 overflow-hidden">
+            <div className="flex items-center gap-2 px-1">
+              <Zap size={16} className="text-orange-500" />
+              <h3 className="font-bold text-slate-300 text-sm">Treasury & Validators</h3>
+            </div>
+
+            <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 snap-x">
+              {/* Mobile Treasury Card */}
+              <div className="shrink-0 w-64 glassmorphism rounded-2xl p-4 border border-orange-500/20 bg-gradient-to-b from-orange-500/5 to-transparent snap-center relative overflow-hidden">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-bold text-white text-xs">BOT Chain Treasury</h3>
+                  <span className="text-[10px] px-1.5 py-0.5 bg-orange-500/20 text-orange-400 rounded-full font-bold">Active</span>
+                </div>
+
+                <div className="flex items-baseline gap-1 mb-3">
+                  <span className="text-2xl font-black text-white">{blockchainStats.balanceBOT}</span>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">BOT</span>
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={fundingAmount}
+                    onChange={(e) => setFundingAmount(e.target.value)}
+                    className="w-14 bg-slate-900 border border-white/10 rounded-lg px-2 text-xs text-white text-center focus:outline-none focus:border-orange-500"
+                  />
+                  <button
+                    onClick={handleFundTreasury}
+                    className="flex-1 bg-gradient-to-r from-orange-600 flex items-center justify-center to-orange-500 hover:from-orange-500 text-white font-bold py-1.5 px-2 rounded-lg text-xs transition-all"
+                  >
+                    Fund
+                  </button>
+                </div>
+              </div>
+
+              {/* Mobile Validator Leaderboard */}
+              {blockchainStats.leaderboard?.length > 0 && (
+                <div className="shrink-0 w-72 glassmorphism rounded-2xl p-4 border border-purple-500/20 bg-gradient-to-b from-purple-500/5 to-transparent snap-center">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Shield size={14} className="text-purple-400" />
+                    <h3 className="font-bold text-white text-xs">Top Validators</h3>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    {blockchainStats.leaderboard.slice(0, 3).map((val: any, i: number) => (
+                      <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 flex items-center justify-center rounded-full bg-slate-800 text-[9px] font-bold text-slate-300">
+                            {i + 1}
+                          </div>
+                          <span className="text-[10px] font-mono text-slate-300">
+                            {val.address.substring(0, 6)}..{val.address.substring(38)}
+                          </span>
+                        </div>
+                        <div className="text-[10px] font-bold text-orange-400">
+                          {val.totalBOT} BOT
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Search results banner */}
         {searchQuery && (
           <div className="flex items-center justify-between px-4 py-2.5 glassmorphism rounded-2xl border border-primary-500/20">
@@ -618,7 +694,7 @@ export default function Feed() {
                     <button
                       onClick={() => {
                         const pendingStar = Number(ratingNotes[`${post._id}_star`]);
-                        if (!pendingStar) return alert('Please select a star rating first!');
+                        if (!pendingStar) return toast.error('Please select a star rating first!');
                         handleRatePost(post._id, pendingStar);
                         setRatingNotes(prev => ({ ...prev, [`${post._id}_star`]: '' }));
                       }}

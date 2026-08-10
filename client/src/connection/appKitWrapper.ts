@@ -8,7 +8,7 @@ const projectId = import.meta.env.VITE_PROJECT_ID;
 
 // 2. Define the Custom BOT Chain Network manually since it isn't a preset
 const botChain: AppKitNetwork = {
-  id: 968, // Ensure this integer precisely matches Bohr/BOT Chain's network Chain ID
+  id: 677, // Ensure this integer precisely matches Bohr/BOT Chain's network Chain ID
   name: 'BOT Chain',
   nativeCurrency: {
     decimals: 18,
@@ -17,16 +17,16 @@ const botChain: AppKitNetwork = {
   },
   rpcUrls: {
     default: { 
-      http: ['https://rpc.bohr.life'] // Replace with your exact official RPC node URL
+      http: ['https://rpc.botchain.ai'] // Replace with your exact official RPC node URL
     },
     public: { 
-      http: ['https://rpc.bohr.life'] 
+      http: ['https://rpc.botchain.ai'] 
     },
   },
   blockExplorers: {
     default: { 
       name: 'BOTScan', 
-      url: 'https://rpc.bohr.life' // Web frontend URL for user routing redirects
+      url: 'https://rpc.botchain.ai' // Web frontend URL for user routing redirects
     },
   },
 };
@@ -43,7 +43,7 @@ const metadata = {
 };
 
 // 5. Create the AppKit instance with EthersAdapter
-createAppKit({
+const appKit = createAppKit({
   adapters: [new EthersAdapter()],
   networks,
   metadata,
@@ -52,6 +52,8 @@ createAppKit({
     analytics: true,
   },
 });
+
+appKit.switchNetwork(botChain);
 
 export default function AppkitWrapper({ children }: { children: ReactNode }) {
   return createElement('div', null, children);

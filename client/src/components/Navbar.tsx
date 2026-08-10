@@ -48,7 +48,8 @@ export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }
     api.get('notifications').then(res => setNotifications(res.data)).catch(() => { });
 
     // 2. Join user-specific socket room — MUST happen inside 'connect' event
-    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+    const socketUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+    const socket = io(socketUrl, {
       transports: ['websocket', 'polling']
     });
 

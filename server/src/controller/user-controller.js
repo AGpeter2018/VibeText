@@ -146,6 +146,13 @@ export const updateWalletAddress = async (req, res) => {
             return res.status(400).json({ error: 'Wallet address required' });
         }
 
+        // If another account has this wallet linked, unlink it first 
+        // to prevent MongoDB unique index E11000 duplicate key errors
+        await User.updateMany(
+            { walletAddress },
+            { $unset: { walletAddress: 1 } }
+        );
+
         await User.findByIdAndUpdate(req.userId, { walletAddress });
         res.status(200).json({ message: 'Wallet linked successfully', walletAddress });
     } catch (error) {

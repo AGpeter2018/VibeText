@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
+import { Toaster } from 'react-hot-toast';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import Landing from './pages/Landing';
@@ -19,6 +20,7 @@ function App() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans scroll-smooth">
       {/* Background glow layers */}
+      <Toaster position="bottom-right" containerStyle={{ zIndex: 99999 }} toastOptions={{ style: { background: '#1e293b', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.08)' } }} />
       <div className="fixed inset-0 bg-gradient-radial-web3 opacity-60 mix-blend-screen pointer-events-none z-0" />
       <div className="fixed top-0 w-full h-[500px] bg-gradient-to-b from-primary-900/20 to-transparent pointer-events-none z-0" />
 
