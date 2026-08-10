@@ -6,7 +6,7 @@ import { Sidebar } from './components/Sidebar';
 import Landing from './pages/Landing';
 import Feed from './pages/Feed';
 import Tune from './pages/Tune';
-import Dashboard from './pages/Dashboard';
+import Dashboard from './pages/dashBoard';
 import Marketplace from './pages/Marketplace';
 import OAuthCallback from './pages/OAuthCallback';
 
