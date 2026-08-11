@@ -73,7 +73,8 @@ ${intensity ? `[INTENSITY]: "${intensity}"` : ""}
 
         // Point to our own proxy endpoint to avoid CORS 403 errors from the browser
         const optimizedPrompt = `${parsed.imagePrompt}, cinematic lighting, highly detailed, aesthetic`;
-        const baseUrl = req.protocol + '://' + req.get('host');
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+        const baseUrl = protocol + '://' + req.get('host');
         const imageUrl = `${baseUrl}/api/image-proxy?prompt=${encodeURIComponent(optimizedPrompt)}`;
 
         res.status(200).json({ content: parsed.text, imageUrl });
