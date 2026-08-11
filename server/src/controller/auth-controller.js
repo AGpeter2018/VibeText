@@ -166,7 +166,10 @@ export const sendOtp = async (req, res) => {
                 port: smtpPort,
                 secure: smtpPort === 465,
                 auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-                tls: { rejectUnauthorized: false }
+                tls: { rejectUnauthorized: false },
+                connectionTimeout: 10000,
+                greetingTimeout: 5000,
+                socketTimeout: 10000
             });
 
             await transporter.sendMail({
