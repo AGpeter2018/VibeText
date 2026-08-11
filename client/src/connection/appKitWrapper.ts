@@ -38,7 +38,7 @@ const networks: [AppKitNetwork, ...AppKitNetwork[]] = [botChain];
 const metadata = {
   name: "VibeText",
   description: "This is a text tuning dapp built with AppKit",
-  url: "http://localhost:5173/", 
+  url: typeof window !== "undefined" ? window.location.origin : "https://vibes-text.vercel.app", 
   icons: ["https://avatars.mywebsite.com/"],
 };
 
