@@ -1,13 +1,13 @@
-import { useAppKit } from '@reown/appkit/react';
+// import { useAppKit } from '@reown/appkit/react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
-import { X, Zap, Mail } from 'lucide-react';
+import { X, Zap } from 'lucide-react';
 import { useState } from 'react';
 import api from '../lib/api';
 
 export function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { login } = useAuth();
-  const { open } = useAppKit();
+  // const { open } = useAppKit();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState<'google' | 'discord' | 'email' | null>(null);
 
