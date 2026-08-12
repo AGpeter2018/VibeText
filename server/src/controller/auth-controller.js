@@ -65,6 +65,56 @@ export const googleAuth = async (req, res) => {
     }
 };
 
+export const googleTokenAuth = async (req, res) => {
+    try {
+        const { accessToken, userInfo } = req.body;
+        if (!accessToken || !userInfo) {
+            return res.status(400).json({ error: 'Access token and user info are required' });
+        }
+
+        // Verify the token is valid by calling Google's userinfo endpoint
+        const googleRes = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        });
+
+        const { sub: googleId, name, email, picture } = googleRes.data;
+
+        if (!email) {
+            return res.status(400).json({ error: 'Google account must have a verified email' });
+        }
+
+        let user = await User.findOne({ $or: [{ googleId }, { email }] });
+        if (!user) {
+            const role = isAdminEmail(email) ? 'admin' : 'user';
+            user = await User.create({ googleId, name, email, picture, role });
+        } else {
+            user.googleId = googleId;
+            user.name = name;
+            user.picture = picture;
+            if (isAdminEmail(email)) user.role = 'admin';
+            await user.save();
+        }
+
+        const token = jwt.sign(
+            { userId: user._id, email: user.email, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        res.status(200).json({
+            token,
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            picture: user.picture,
+            role: user.role,
+        });
+    } catch (error) {
+        console.error('Google token auth error:', error);
+        res.status(500).json({ error: 'Google authentication failed' });
+    }
+};
+
 export const verifyOAuth = async (req, res) => {
     try {
         const { code, provider } = req.body;
@@ -191,7 +241,10 @@ export const sendOtp = async (req, res) => {
         res.status(200).json({ message: 'OTP sent successfully!' });
     } catch (error) {
         console.error('Send OTP Error:', error);
-        res.status(500).json({ error: 'Failed to send verification email' });
+        const errContext = (error.message || '').toLowerCase().includes('timeout')
+            ? 'SMTP Blocked: Render Free Tier firewall prevents outgoing emails. Run locally or upgrade Render.'
+            : 'SMTP Error: Failed to send verification email. Check App Passwords.';
+        res.status(500).json({ error: errContext });
     }
 };
 

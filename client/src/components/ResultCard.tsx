@@ -6,7 +6,6 @@ import { useAuth } from '../context/AuthContext';
 import { AuthModal } from './AuthModal';
 import api from '../lib/api';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
 
 interface ResultCardProps {
   result: string | null;
@@ -86,7 +85,7 @@ export function ResultCard({ result, originalText, vibe, intensity, imageUrl }: 
       }
     } catch (err: any) {
       console.error("Failed to share/generate image", err);
-      toast.error('Failed to share or generate image: ' + (err.message || err));
+      alert("Failed to share or generate image: " + (err.message || err));
     } finally {
       setIsGeneratingImage(false);
     }
@@ -110,7 +109,7 @@ export function ResultCard({ result, originalText, vibe, intensity, imageUrl }: 
       navigate('/feed');
     } catch (err: any) {
       console.error('Failed to publish', err);
-      toast.error('Failed to publish: ' + (err.response?.data?.error || err.message));
+      alert('Failed to publish: ' + (err.response?.data?.error || err.message));
     } finally {
       setIsPublishing(false);
     }
@@ -136,9 +135,7 @@ export function ResultCard({ result, originalText, vibe, intensity, imageUrl }: 
                 {imageUrl && (
                   <div className="w-full h-48 sm:h-64 mb-6 rounded-xl overflow-hidden border border-white/10 relative shrink-0">
                     <img
-                      src={imageUrl.startsWith('http') && !imageUrl.includes('image-proxy')
-                        ? `${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '')}/api/image-proxy?url=${encodeURIComponent(imageUrl)}`
-                        : imageUrl}
+                      src={imageUrl}
                       alt="Vibe AI Art"
                       className="w-full h-full object-cover"
                       crossOrigin="anonymous"
