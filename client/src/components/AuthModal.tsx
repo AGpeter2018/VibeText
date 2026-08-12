@@ -1,27 +1,24 @@
+import { useAppKit } from '@reown/appkit/react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
-import { X, Zap } from 'lucide-react';
+import { X, Zap, Mail } from 'lucide-react';
 import { useState } from 'react';
 import api from '../lib/api';
 
 export function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { login } = useAuth();
+  const { open } = useAppKit();
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState<'google' | 'discord' | null>(null);
+  const [loading, setLoading] = useState<'google' | 'discord' | 'email' | null>(null);
 
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
-      setLoading('google');
       setError('');
       try {
-        // Fetch user info from Google using the access token
         const userInfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
           headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
         }).then(r => r.json());
 
-        // Exchange with our backend using the id_token flow isn't available here —
-        // so we pass user info directly and use the access token to create a session
-        // Backend verifies via userinfo endpoint
         const res = await api.post('auth/google-token', {
           accessToken: tokenResponse.access_token,
           userInfo,
@@ -52,7 +49,29 @@ export function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
     window.location.href = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=identify%20email&state=discord`;
   };
 
+  // Open Reown's built-in modal which handles email magic link
+  // through Reown's cloud (bypasses Render SMTP firewall entirely)
+  const handleEmailLogin = () => {
+    setLoading('email');
+    onClose(); // Close our modal first
+    open({ view: 'Connect' }); // Reown modal handles email magic link + social internally
+  };
+
   if (!isOpen) return null;
+
+  const btnBase: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    width: '100%',
+    padding: '13px 20px',
+    borderRadius: 14,
+    cursor: loading !== null ? 'not-allowed' : 'pointer',
+    transition: 'all 0.2s',
+    fontFamily: 'inherit',
+    border: 'none',
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md px-4">
@@ -64,15 +83,10 @@ export function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
           boxShadow: '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(124,58,237,0.1)',
         }}
       >
-        {/* Close */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors"
-        >
+        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors">
           <X size={22} />
         </button>
 
-        {/* Logo mark */}
         <div className="flex flex-col items-center mb-8">
           <div
             className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
@@ -81,40 +95,25 @@ export function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
             <Zap size={28} color="#fff" />
           </div>
           <h2 className="text-2xl font-bold text-white">Welcome to VibeText</h2>
-          <p className="text-slate-400 text-sm mt-1 text-center">Sign in securely with your existing account</p>
+          <p className="text-slate-400 text-sm mt-1 text-center">Sign in securely — only verified accounts accepted</p>
         </div>
 
-        {/* Error banner */}
         {error && (
           <div className="mb-5 bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-xl text-center">
             {error}
           </div>
         )}
 
-        {/* OAuth Buttons */}
         <div className="flex flex-col gap-3">
           {/* Google */}
           <button
-            onClick={() => {
-              setError('');
-              setLoading('google');
-              handleGoogleLogin();
-            }}
+            onClick={() => { setError(''); setLoading('google'); handleGoogleLogin(); }}
             disabled={loading !== null}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 10,
-              width: '100%',
-              padding: '13px 20px',
-              borderRadius: 14,
+              ...btnBase,
               background: loading === 'google' ? 'rgba(255,255,255,0.05)' : '#fff',
               border: '1px solid rgba(255,255,255,0.1)',
-              cursor: loading !== null ? 'not-allowed' : 'pointer',
               opacity: loading !== null && loading !== 'google' ? 0.5 : 1,
-              transition: 'all 0.2s',
-              fontFamily: 'inherit',
             }}
           >
             {loading === 'google' ? (
@@ -137,19 +136,10 @@ export function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
             onClick={handleDiscordLogin}
             disabled={loading !== null}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 10,
-              width: '100%',
-              padding: '13px 20px',
-              borderRadius: 14,
-              background: loading === 'discord' ? 'rgba(88,101,242,0.2)' : '#5865F2',
+              ...btnBase,
+              background: '#5865F2',
               border: '1px solid rgba(88,101,242,0.4)',
-              cursor: loading !== null ? 'not-allowed' : 'pointer',
               opacity: loading !== null && loading !== 'discord' ? 0.5 : 1,
-              transition: 'all 0.2s',
-              fontFamily: 'inherit',
             }}
           >
             {loading === 'discord' ? (
@@ -163,12 +153,32 @@ export function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
               {loading === 'discord' ? 'Redirecting…' : 'Continue with Discord'}
             </span>
           </button>
+
+          {/* Email via Reown magic link */}
+          <button
+            onClick={handleEmailLogin}
+            disabled={loading !== null}
+            style={{
+              ...btnBase,
+              background: 'rgba(124,58,237,0.12)',
+              border: '1px solid rgba(124,58,237,0.3)',
+              opacity: loading !== null && loading !== 'email' ? 0.5 : 1,
+            }}
+          >
+            {loading === 'email' ? (
+              <div className="w-5 h-5 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+            ) : (
+              <Mail size={20} color="#a78bfa" />
+            )}
+            <span style={{ color: '#a78bfa', fontWeight: 600, fontSize: 15 }}>
+              {loading === 'email' ? 'Opening…' : 'Continue with Email'}
+            </span>
+          </button>
         </div>
 
-        {/* Footer note */}
         <p className="text-center text-slate-600 text-xs mt-6 leading-relaxed">
-          By signing in, you agree to our Terms of Service.<br />
-          Only verified OAuth accounts are accepted.
+          Email magic link powered by Reown — no SMTP required.<br />
+          By signing in, you agree to our Terms of Service.
         </p>
       </div>
     </div>

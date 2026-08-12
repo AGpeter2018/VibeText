@@ -128,7 +128,10 @@ export const verifyOAuth = async (req, res) => {
         params.append('client_secret', String(process.env.DISCORD_CLIENT_SECRET).trim());
         params.append('grant_type', 'authorization_code');
         params.append('code', code);
-        params.append('redirect_uri', `${(process.env.CLIENT_URL || 'http://localhost:5173').trim()}/oauth/callback`);
+        // IMPORTANT: redirect_uri must EXACTLY match what's registered in Discord Developer Portal
+        // AND what the frontend sent during the initial authorization redirect.
+        const clientOrigin = 'https://vibes-text.vercel.app';
+        params.append('redirect_uri', `${clientOrigin}/oauth/callback`);
 
         console.log('Debug Discord Payload (URLSearchParams):', params.toString());
 
