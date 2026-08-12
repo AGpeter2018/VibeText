@@ -1,7 +1,7 @@
 // import { useAppKit } from '@reown/appkit/react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
-import { X, Zap } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useState } from 'react';
 import api from '../lib/api';
 
@@ -75,19 +75,18 @@ export function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
           boxShadow: '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(124,58,237,0.1)',
         }}
       >
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors">
+        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors cursor-pointer">
           <X size={22} />
         </button>
 
-        <div className="flex flex-col items-center mb-8">
-          <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
-            style={{ background: 'linear-gradient(135deg, #7c3aed, #06b6d4)', boxShadow: '0 8px 24px rgba(124,58,237,0.4)' }}
-          >
-            <Zap size={28} color="#fff" />
+        <div className="flex flex-col items-center mb-8 text-center pt-2">
+          <div className="mb-5 shadow-2xl shadow-primary-500/20" style={{ width: 64, height: 64, borderRadius: 16, background: 'linear-gradient(135deg, #7c3aed, #06b6d4)', padding: 1 }}>
+            <div style={{ width: '100%', height: '100%', background: '#080f1e', borderRadius: 15, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontWeight: 800, fontSize: 32, background: 'linear-gradient(to right, #a78bfa, #22d3ee)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', transform: 'translateY(1px)' }}>V</span>
+            </div>
           </div>
-          <h2 className="text-2xl font-bold text-white">Welcome to VibeText</h2>
-          <p className="text-slate-400 text-sm mt-1 text-center">Sign in securely — only verified accounts accepted</p>
+          <h2 className="text-2xl font-bold text-white tracking-tight">Welcome to VibeText</h2>
+          <p className="text-slate-400 text-sm mt-2 text-center max-w-[260px]">Sign in securely — only verified accounts accepted</p>
         </div>
 
         {error && (

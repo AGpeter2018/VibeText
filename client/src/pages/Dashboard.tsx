@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
     Shield, Users, Image as ImageIcon, Heart, Trash2,
-    Sparkles, AlertCircle, LogOut, BarChart3, RefreshCw, Bookmark, Zap
+    Wand2, AlertCircle, LogOut, BarChart3, RefreshCw, Bookmark, Zap
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useAppKitAccount, useAppKitProvider } from '@reown/appkit/react';
@@ -153,7 +153,9 @@ export default function Dashboard() {
             else if (action === 'unpause') tx = await contract.unpause();
             else if (action === 'withdraw') tx = await contract.withdraw(parseEther(withdrawAmount));
             else if (action === 'nominateOwner') tx = await contract.nominateOwner(newOwnerAddress);
-            else if (action === 'acceptOwnership') tx = await contract.acceptOwnership();
+            if (action === 'withdraw') { setWithdrawAmount(''); }
+            if (action === 'addAdmin' || action === 'removeAdmin') { setAdminAddress(''); }
+            if (action === 'nominateOwner') { setNewOwnerAddress(''); }
 
             toast.success(`✅ Transaction submitted! Hash: ${tx.hash.slice(0, 18)}...`);
         } catch (err: any) {
@@ -213,7 +215,7 @@ export default function Dashboard() {
 
                     <button
                         onClick={logout}
-                        className="mt-8 flex items-center justify-center gap-2 w-full py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl transition-colors font-medium border border-red-500/20"
+                        className="mt-8 flex items-center justify-center gap-2 w-full py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl transition-colors font-medium border border-red-500/20 cursor-pointer"
                     >
                         <LogOut size={18} />
                         Sign Out
@@ -221,15 +223,15 @@ export default function Dashboard() {
                 </div>
 
                 {/* Tab Navigation */}
-                <div className="glassmorphism rounded-3xl border border-white/5 overflow-hidden flex flex-col">
+                <div className="glassmorphism rounded-3xl border border-white/5 overflow-hidden flex flex-col cursor-pointer">
                     {([
-                        { id: 'vibes', label: 'My Collection', icon: <Sparkles size={18} /> },
+                        { id: 'vibes', label: 'My Collection', icon: <Wand2 size={18} /> },
                         { id: 'saved', label: 'Saved Vibes', icon: <Bookmark size={18} /> },
                         { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={18} /> },
                         ...(isAdmin ? [
                             { id: 'admin_users', label: 'Manage Users', icon: <Users size={18} /> },
                             { id: 'admin_posts', label: 'Moderation', icon: <Shield size={18} /> },
-                            { id: 'admin_vibe', label: 'Schedule Vibe', icon: <Sparkles size={18} /> },
+                            { id: 'admin_vibe', label: 'Schedule Vibe', icon: <Wand2 size={18} /> },
                         ] : []),
                         ...(isContractOwner || isPendingContractOwner ? [
                             { id: 'admin_contract', label: 'Smart Contract', icon: <Zap size={18} /> },
@@ -238,7 +240,7 @@ export default function Dashboard() {
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`flex items-center gap-3 p-4 text-sm font-medium transition-colors text-left border-l-4 ${activeTab === tab.id
+                            className={`flex items-center cursor-pointer gap-3 p-4 text-sm font-medium transition-colors text-left border-l-4 ${activeTab === tab.id
                                 ? 'bg-white/5 border-primary-500 text-primary-400'
                                 : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5'
                                 }`}
@@ -289,7 +291,7 @@ export default function Dashboard() {
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="bg-slate-900/50 rounded-2xl p-6 border border-white/5 flex items-center gap-5">
-                                        <div className="p-4 bg-primary-500/20 rounded-2xl text-primary-400"><Sparkles size={28} /></div>
+                                        <div className="p-4 bg-primary-500/20 rounded-2xl text-primary-400"><Wand2 size={28} /></div>
                                         <div>
                                             <h3 className="text-3xl font-black text-white">{userStats.totalVibes}</h3>
                                             <p className="text-slate-500 text-sm font-medium uppercase tracking-wider">Vibes Created</p>
@@ -369,7 +371,7 @@ export default function Dashboard() {
                                         <div className="relative flex flex-col sm:flex-row items-center justify-between gap-6">
                                             <div className="flex flex-col gap-1.5 text-center sm:text-left">
                                                 <div className="flex items-center justify-center sm:justify-start gap-2 text-primary-400">
-                                                    <Sparkles size={20} />
+                                                    <Wand2 size={20} />
                                                     <h4 className="font-bold uppercase tracking-wider text-xs">North Star Engagement Metric</h4>
                                                 </div>
                                                 <p className="text-slate-300 text-sm max-w-md mt-1 leading-relaxed">Ratio of meaningful user actions relative to total model generations.</p>
@@ -531,16 +533,16 @@ export default function Dashboard() {
                                             <h4 className="text-lg font-bold text-white mb-2">Fund Management</h4>
                                             <div className="flex flex-col gap-2">
                                                 <label className="text-slate-300 text-sm font-medium">Withdraw Amount (BOT)</label>
-                                                <div className="flex gap-2">
-                                                    <input type="number" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder="0.0" className="flex-1 bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500 transition-colors" />
-                                                    <button onClick={() => handleContractAction('withdraw')} disabled={contractActionLoading || !withdrawAmount} className="bg-orange-600 hover:bg-orange-500 text-white font-bold py-2 px-4 rounded-xl transition-colors disabled:opacity-50 whitespace-nowrap">Withdraw</button>
+                                                <div className="grid gap-2">
+                                                    <input type="number" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder="0.0" className="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500 transition-colors" />
+                                                    <button onClick={() => handleContractAction('withdraw')} disabled={contractActionLoading || !withdrawAmount} className="bg-orange-600 hover:bg-orange-500 text-white font-bold py-2 px-4 rounded-xl transition-colors disabled:opacity-50 whitespace-nowrap cursor-pointer">Withdraw</button>
                                                 </div>
                                             </div>
                                             <div className="h-px w-full bg-white/5 my-2" />
                                             <h4 className="text-lg font-bold text-white mb-2">Emergency State</h4>
                                             <div className="flex gap-4">
-                                                <button onClick={() => handleContractAction('pause')} disabled={contractActionLoading} className="flex-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold py-3 px-4 rounded-xl border border-red-500/30 transition-colors disabled:opacity-50">Pause Contract</button>
-                                                <button onClick={() => handleContractAction('unpause')} disabled={contractActionLoading} className="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 font-bold py-3 px-4 rounded-xl border border-green-500/30 transition-colors disabled:opacity-50">Unpause</button>
+                                                <button onClick={() => handleContractAction('pause')} disabled={contractActionLoading} className="flex-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold py-3 px-4 rounded-xl border border-red-500/30 transition-colors disabled:opacity-50 cursor-pointer">Pause Contract</button>
+                                                <button onClick={() => handleContractAction('unpause')} disabled={contractActionLoading} className="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 font-bold py-3 px-4 rounded-xl border border-green-500/30 transition-colors disabled:opacity-50 cursor-pointer">Unpause</button>
                                             </div>
                                         </div>
                                         <div className="glassmorphism p-6 rounded-3xl border border-white/5 flex flex-col gap-5 relative overflow-hidden">
@@ -551,14 +553,14 @@ export default function Dashboard() {
                                                 <input type="text" value={adminAddress} onChange={(e) => setAdminAddress(e.target.value)} placeholder="0x..." className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-purple-500 transition-colors" />
                                             </div>
                                             <div className="flex gap-4 mt-2">
-                                                <button onClick={() => handleContractAction('addAdmin')} disabled={contractActionLoading || !adminAddress} className="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50">Add Admin</button>
-                                                <button onClick={() => handleContractAction('removeAdmin')} disabled={contractActionLoading || !adminAddress} className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl border border-white/10 transition-colors disabled:opacity-50">Remove</button>
+                                                <button onClick={() => handleContractAction('addAdmin')} disabled={contractActionLoading || !adminAddress} className="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 cursor-pointer ">Add Admin</button>
+                                                <button onClick={() => handleContractAction('removeAdmin')} disabled={contractActionLoading || !adminAddress} className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl border border-white/10 transition-colors disabled:opacity-50 cursor-pointer ">Remove</button>
                                             </div>
                                         </div>
                                         <div className="glassmorphism p-6 rounded-3xl border border-white/5 flex flex-col gap-5 relative overflow-hidden md:col-span-2">
                                             <h4 className="text-lg font-bold text-white mb-2">Transfer Ownership</h4>
                                             <p className="text-sm text-slate-400 -mt-3">Nominate a new wallet address to take over full ownership of the smart contract.</p>
-                                            <div className="flex gap-2">
+                                            <div className="grid grid-cols-2 gap-2">
                                                 <input type="text" value={newOwnerAddress} onChange={(e) => setNewOwnerAddress(e.target.value)} placeholder="0x..." className="flex-1 bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-red-500 transition-colors" />
                                                 <button onClick={() => handleContractAction('nominateOwner')} disabled={contractActionLoading || !newOwnerAddress} className="bg-red-600/80 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-xl transition-colors disabled:opacity-50">Nominate</button>
                                             </div>
