@@ -49,14 +49,6 @@ export function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
     window.location.href = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=identify%20email&state=discord`;
   };
 
-  // Open Reown's built-in modal which handles email magic link
-  // through Reown's cloud (bypasses Render SMTP firewall entirely)
-  const handleEmailLogin = () => {
-    setLoading('email');
-    onClose(); // Close our modal first
-    open({ view: 'Connect' }); // Reown modal handles email magic link + social internally
-  };
-
   if (!isOpen) return null;
 
   const btnBase: React.CSSProperties = {
@@ -153,32 +145,11 @@ export function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
               {loading === 'discord' ? 'Redirecting…' : 'Continue with Discord'}
             </span>
           </button>
-
-          {/* Email via Reown magic link */}
-          <button
-            onClick={handleEmailLogin}
-            disabled={loading !== null}
-            style={{
-              ...btnBase,
-              background: 'rgba(124,58,237,0.12)',
-              border: '1px solid rgba(124,58,237,0.3)',
-              opacity: loading !== null && loading !== 'email' ? 0.5 : 1,
-            }}
-          >
-            {loading === 'email' ? (
-              <div className="w-5 h-5 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
-            ) : (
-              <Mail size={20} color="#a78bfa" />
-            )}
-            <span style={{ color: '#a78bfa', fontWeight: 600, fontSize: 15 }}>
-              {loading === 'email' ? 'Opening…' : 'Continue with Email'}
-            </span>
-          </button>
         </div>
 
         <p className="text-center text-slate-600 text-xs mt-6 leading-relaxed">
-          Email magic link powered by Reown — no SMTP required.<br />
-          By signing in, you agree to our Terms of Service.
+          By signing in, you agree to our Terms of Service.<br />
+          Only verified OAuth accounts are accepted.
         </p>
       </div>
     </div>

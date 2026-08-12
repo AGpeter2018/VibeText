@@ -50,9 +50,6 @@ const appKit = createAppKit({
   projectId,
   features: {
     analytics: true,
-    email: true,
-    socials: ['google', 'discord'],
-    emailShowWallets: false,
   },
 });
 
