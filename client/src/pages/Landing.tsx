@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Wand2, MessageSquare, TrendingUp, Users,
+  Wand2, MessageSquare, Users,
   Zap, Share2, Globe2, ArrowRight, Shield, Star, Lock, Gift
 } from 'lucide-react';
 import { useState } from 'react';
@@ -151,7 +151,6 @@ export default function Landing() {
                 {/* Tuned */}
                 <div className="bg-gradient-to-br from-primary-900/20 to-accent-900/20 rounded-2xl p-6 border border-primary-500/30 flex flex-col pt-10 relative shadow-[inset_0_0_40px_rgba(124,58,237,0.05)]">
                   <div className="absolute top-0 left-0 bg-primary-600 text-white text-xs font-bold px-3 py-1 rounded-br-lg rounded-tl-2xl flex items-center gap-1 shadow-md">
-                    <Sparkles size={12} /> TUNED: {beforeAfterExamples[activeBeforeAfter].vibe.toUpperCase()}
                   </div>
                   <p className="text-white font-medium text-lg md:text-xl leading-relaxed pt-2 drop-shadow-md">
                     &quot;{beforeAfterExamples[activeBeforeAfter].tuned}&quot;
