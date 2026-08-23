@@ -36,9 +36,14 @@ export default function Tune() {
       setOriginalText('');
       setTunedText(res.data.content);
       setImageUrl(res.data.imageUrl);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error('Failed to tune text. Please try again.');
+      const errorMsg = err?.response?.data?.error || err.message || '';
+      if (errorMsg.includes('429') || errorMsg.includes('Quota') || errorMsg.includes('quota')) {
+        toast.error('API rate limit reached (Free Tier). Please wait 45 seconds!');
+      } else {
+        toast.error('Failed to tune text. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
