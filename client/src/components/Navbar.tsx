@@ -136,8 +136,10 @@ export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }
         {!isLanding ? (
           <>
             {/* Search bar — centered, grows to fill available space */}
+            <div className="sm:flex hidden"> 
             <form
               onSubmit={handleSearch}
+              
               style={{
                 flex: 1,
                 maxWidth: 420,
@@ -151,7 +153,6 @@ export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }
                 height: 36,
                 minWidth: 0,
               }}
-              className="sm:flex hidden"
             >
               <Search size={14} color="#475569" style={{ flexShrink: 0 }} />
               <input
@@ -185,6 +186,7 @@ export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }
                 <Search size={12} />
               </button>
             </form>
+            </div>
 
 
 
