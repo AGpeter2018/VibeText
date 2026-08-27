@@ -39,19 +39,10 @@ export default function Feed() {
   const [hasMore, setHasMore] = useState(true);
   const [fetchingMore, setFetchingMore] = useState(false);
   const observerTarget = useRef<HTMLDivElement>(null);
-  const { isAuthenticated, token } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { walletProvider } = useAppKitProvider<any>('eip155');
 
-  // Helper to extract userId from JWT locally
-  const currentUserId = useMemo(() => {
-    if (!token) return null;
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.userId;
-    } catch (e) {
-      return null;
-    }
-  }, [token]);
+  const currentUserId = user?._id ?? null;
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set());
