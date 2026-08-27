@@ -4,20 +4,16 @@ import axios from 'axios';
 const rawBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const baseURL = rawBase.endsWith('/api') ? rawBase : `${rawBase.replace(/\/$/, '')}/api`;
 
-const api = axios.create({ baseURL });
-
-// Add a request interceptor to attach the JWT token
-api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('vibetext_token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
-    }
-);
+/**
+ * 🍪 withCredentials: true is the magic setting.
+ * It tells the browser: "Include my cookies when sending requests
+ * to this API, even though it's on a different domain (Render)."
+ * Without this, the HttpOnly cookie would never be sent and
+ * every request would be treated as unauthenticated.
+ */
+const api = axios.create({
+    baseURL,
+    withCredentials: true, // Send the HttpOnly session cookie on every request
+});
 
 export default api;

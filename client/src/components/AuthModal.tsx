@@ -23,7 +23,7 @@ export function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
           accessToken: tokenResponse.access_token,
           userInfo,
         });
-        login(res.data.token, res.data);
+        login(res.data);
         onClose();
       } catch (err: any) {
         setError(err.response?.data?.error || 'Google sign-in failed. Please try again.');

@@ -1,5 +1,6 @@
 import express from 'express'
 import cors from 'cors'
+import cookieParser from 'cookie-parser'
 import { generateContent, proxyImage } from './controller/ai-controller.js'
 import authRoutes from './routes/auth-route.js'
 import feedRoutes from './routes/feed-route.js'
@@ -46,6 +47,7 @@ app.use(cors({
 }));
 
 app.use(express.json())
+app.use(cookieParser())
 
 app.use(express.urlencoded({ extended: true }))
 

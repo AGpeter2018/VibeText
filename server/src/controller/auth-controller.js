@@ -16,6 +16,25 @@ const isAdminEmail = (email) => {
     return adminEmails.includes(email.toLowerCase().trim());
 };
 
+/**
+ * 🍪 HOW HTTPONLY COOKIES WORK (learning note):
+ * The browser stores this cookie automatically and attaches it to every
+ * API request — but JavaScript can NEVER read it (httpOnly: true).
+ * `secure: true` means it only travels over HTTPS.
+ * `sameSite: 'none'` is required because our frontend (Vercel) and
+ * backend (Render) are on different domains (cross-site).
+ */
+const COOKIE_OPTIONS = {
+    httpOnly: true,          
+    secure: true,            
+    sameSite: 'none',        
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+};
+
+const setAuthCookie = (res, token) => {
+    res.cookie('vibetext_token', token, COOKIE_OPTIONS);
+};
+
 export const googleAuth = async (req, res) => {
     try {
         const { credential } = req.body;
@@ -51,8 +70,8 @@ export const googleAuth = async (req, res) => {
             { expiresIn: '7d' }
         );
 
+        setAuthCookie(res, token);
         res.status(200).json({
-            token,
             _id: user._id,
             name: user.name,
             email: user.email,
@@ -101,8 +120,8 @@ export const googleTokenAuth = async (req, res) => {
             { expiresIn: '7d' }
         );
 
+        setAuthCookie(res, token);
         res.status(200).json({
-            token,
             _id: user._id,
             name: user.name,
             email: user.email,
@@ -175,8 +194,8 @@ export const verifyOAuth = async (req, res) => {
             { expiresIn: '7d' }
         );
 
+        setAuthCookie(res, token);
         res.status(200).json({
-            token,
             _id: user._id,
             name: user.name,
             email: user.email,
@@ -286,8 +305,8 @@ export const verifyOtp = async (req, res) => {
             { expiresIn: '7d' }
         );
 
+        setAuthCookie(res, token);
         res.status(200).json({
-            token,
             _id: user._id,
             name: user.name,
             email: user.email,
@@ -332,8 +351,9 @@ export const register = async (req, res) => {
             { expiresIn: '7d' }
         );
 
+        setAuthCookie(res, token);
         res.status(201).json({
-            token,
+            _id: user._id,
             name: user.name,
             email: user.email,
             picture: user.picture,
@@ -378,8 +398,9 @@ export const login = async (req, res) => {
             { expiresIn: '7d' }
         );
 
+        setAuthCookie(res, token);
         res.status(200).json({
-            token,
+            _id: user._id,
             name: user.name,
             email: user.email,
             picture: user.picture,
@@ -389,4 +410,14 @@ export const login = async (req, res) => {
         console.error('Login error:', error);
         res.status(500).json({ error: 'Failed to log in' });
     }
+};
+
+/**
+ *  LOGOUT: Clear the cookie server-side.
+ * Even if a JS bug somehow kept a reference, clearing it here
+ * on the server means the token is permanently invalidated.
+ */
+export const logout = (req, res) => {
+    res.clearCookie('vibetext_token', { ...COOKIE_OPTIONS });
+    res.status(200).json({ message: 'Logged out successfully' });
 };
