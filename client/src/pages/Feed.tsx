@@ -7,7 +7,7 @@ import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { AuthModal } from '../components/AuthModal';
 import Avatar from 'boring-avatars';
-import { Sparkles, TrendingUp, Heart, Share2, Flame, Plus, Clock, MessageCircle, Copy, Check, Bookmark, Shield, Zap } from 'lucide-react';
+import { Wand2, TrendingUp, Heart, Share2, Flame, Plus, Clock, MessageCircle, Copy, Check, Bookmark, Shield, Zap } from 'lucide-react';
 import { Abi } from '../constant/Abi';
 import toast from 'react-hot-toast';
 
@@ -39,19 +39,10 @@ export default function Feed() {
   const [hasMore, setHasMore] = useState(true);
   const [fetchingMore, setFetchingMore] = useState(false);
   const observerTarget = useRef<HTMLDivElement>(null);
-  const { isAuthenticated, token } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { walletProvider } = useAppKitProvider<any>('eip155');
 
-  // Helper to extract userId from JWT locally
-  const currentUserId = useMemo(() => {
-    if (!token) return null;
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.userId;
-    } catch (e) {
-      return null;
-    }
-  }, [token]);
+  const currentUserId = user?._id ?? null;
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set());
@@ -177,6 +168,7 @@ export default function Feed() {
 
       const contract = new Contract(contractAddress, Abi, signer);
       const tx = await contract.fundTreasury({ value: parseEther(fundingAmount) });
+      setFundingAmount(''); // Auto-clear amount on success
       toast.success(`Funding submitted! TxHash: ${tx.hash}`);
     } catch (err: any) {
       console.error(err);
@@ -359,7 +351,7 @@ export default function Feed() {
   };
 
   const navItems = [
-    { id: 'for_you', label: 'For You', icon: Sparkles, color: 'text-primary-400' },
+    { id: 'for_you', label: 'For You', icon: Wand2, color: 'text-primary-400' },
     { id: 'trending', label: 'Trending', icon: TrendingUp, color: 'text-accent-400' },
     { id: 'most_authentic', label: 'Most Authentic', icon: Shield, color: 'text-yellow-400' },
     { id: 'recent', label: 'Recent', icon: Clock, color: 'text-indigo-400' },
@@ -456,7 +448,7 @@ export default function Feed() {
             {weeklyVibe && (
               <div className="shrink-0 w-64 glassmorphism rounded-2xl p-4 bg-gradient-to-br from-indigo-900/40 to-transparent border border-indigo-500/20 relative snap-center">
                 <div className="flex items-center gap-2 mb-2">
-                  <Sparkles size={14} className="text-indigo-400" />
+                  <Wand2 size={14} className="text-indigo-400" />
                   <h3 className="font-bold text-white text-xs">Weekly Drop</h3>
                 </div>
                 <span className="text-xs font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 mb-2 inline-block">
@@ -574,8 +566,8 @@ export default function Feed() {
             <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : displayedPosts.length === 0 ? (
-          <div className="text-center text-slate-500 py-20 glassmorphism rounded-3xl flex flex-col items-center">
-            <Sparkles size={48} className="text-slate-700 mb-4" />
+          <div className="text-center text-slate-500 py-20 glassmorphism rounded-3xl flex flex-col items-center cursor-pointer">
+            <Wand2 size={48} className="text-slate-700 mb-4" />
             <p className="text-lg">
               {searchQuery
                 ? `No vibes found for "${searchQuery}". Try a different term!`
@@ -733,7 +725,7 @@ export default function Feed() {
                   {post.txHash && (
                     <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex items-center gap-2 px-3 py-2 bg-orange-500/10 border border-orange-500/30 rounded-xl w-fit hover:bg-orange-500/20 transition-all">
                       <Zap size={14} className="text-orange-400" />
-                      <a href={`https://scan.bohr.life/tx/${post.txHash}`} target="_blank" rel="noreferrer" className="text-xs font-bold text-orange-400 hover:underline">
+                      <a href={`https://scan.botchain.ai/tx/${post.txHash}`} target="_blank" rel="noreferrer" className="text-xs font-bold text-orange-400 hover:underline">
                         Validator Rewarded on BOT Chain! View Tx ↗
                       </a>
                     </motion.div>
@@ -860,7 +852,7 @@ export default function Feed() {
               <div className="text-slate-500 text-sm">Scroll for more</div>
             ) : (
               <div className="text-slate-500 text-sm flex items-center gap-2">
-                <Sparkles size={14} className="text-primary-400" />
+                {/* <Sparkles size={14} className="text-primary-400" /> */}
                 You've hit the end of the wall.
               </div>
             )}
@@ -899,7 +891,7 @@ export default function Feed() {
             <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-3xl blur opacity-10 group-hover:opacity-20 transition duration-1000" />
             <div className="relative">
               <div className="flex items-center gap-2 mb-4">
-                <Sparkles size={18} className="text-indigo-400" />
+                {/* <Sparkles size={18} className="text-indigo-400" /> */}
                 <h3 className="font-bold text-white text-md">Weekly Vibe Drop</h3>
               </div>
               <div className="flex flex-col gap-3">

@@ -16,16 +16,16 @@ const botChain: AppKitNetwork = {
     symbol: 'BOT',
   },
   rpcUrls: {
-    default: { 
+    default: {
       http: ['https://rpc.botchain.ai'] // Replace with your exact official RPC node URL
     },
-    public: { 
-      http: ['https://rpc.botchain.ai'] 
+    public: {
+      http: ['https://rpc.botchain.ai']
     },
   },
   blockExplorers: {
-    default: { 
-      name: 'BOTScan', 
+    default: {
+      name: 'BOTScan',
       url: 'https://rpc.botchain.ai' // Web frontend URL for user routing redirects
     },
   },
@@ -38,7 +38,7 @@ const networks: [AppKitNetwork, ...AppKitNetwork[]] = [botChain];
 const metadata = {
   name: "VibeText",
   description: "This is a text tuning dapp built with AppKit",
-  url: "http://localhost:5173/", 
+  url: typeof window !== "undefined" ? window.location.origin : "https://vibes-text.vercel.app",
   icons: ["https://avatars.mywebsite.com/"],
 };
 

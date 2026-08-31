@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Sparkles, MessageSquare, TrendingUp, Users,
+  Wand2, MessageSquare, Users,
   Zap, Share2, Globe2, ArrowRight, Shield, Star, Lock, Gift
 } from 'lucide-react';
 import { useState } from 'react';
@@ -47,47 +47,55 @@ export default function Landing() {
     <div className="flex flex-col items-center w-full">
 
       {/* 1. HERO SECTION */}
-      <section className="w-full max-w-7xl mx-auto text-center px-4 pt-20 pb-28 relative">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary-600/20 blur-[120px] rounded-full pointer-events-none" />
+      <section className="w-full relative bg-slate-950 overflow-hidden">
+        {/* Background Image Setup */}
+        <div
+          className="absolute inset-0 z-0 opacity-[0.35] bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('/hero-bg.png')" }}
+        />
+        {/* Dark overlay gradient to blend edges */}
+        <div className="absolute inset-0 z-10 bg-gradient-to-b from-slate-950/40 via-transparent to-slate-950" />
 
-        <motion.div
-          variants={container}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.3 }}
-          className="relative z-10"
-        >
-          <motion.div variants={item} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/50 border border-slate-700/50 text-slate-300 font-medium text-sm mb-8 backdrop-blur-md shadow-xl">
-            <Sparkles size={16} className="text-primary-400" />
-            <span>VibeText Protocol v2.5 is Live: Marketplace &amp; Authenticity Engine</span>
+        <div className="w-full max-w-7xl mx-auto text-center px-4 pt-32 pb-40 relative z-20">
+          <motion.div
+            variants={container}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.3 }}
+            className="flex flex-col items-center"
+          >
+            <motion.div variants={item} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-900/60 border border-primary-500/30 text-primary-200 font-bold text-xs md:text-sm mb-10 backdrop-blur-xl shadow-2xl">
+              <Wand2 size={16} className="text-primary-400" />
+              <span>VibeText Protocol v2.5 is Live: Marketplace & Authenticity Engine</span>
+            </motion.div>
+
+            <motion.h1 variants={item} className="text-6xl md:text-[5.5rem] font-black text-white mb-8 tracking-tighter leading-[1.05] drop-shadow-2xl">
+              Rewrite the web.<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 via-accent-300 to-purple-400">
+                Find your voice.
+              </span>
+            </motion.h1>
+
+            <motion.p variants={item} className="text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto mb-14 leading-relaxed font-light drop-shadow-md">
+              The world's first community-driven AI text engine. Transform boring corporate jargon into Gen Z slang, rewrite angry emails into professional masterpieces, and share your creations instantly.
+            </motion.p>
+
+            <motion.div variants={item} className="flex flex-col sm:flex-row items-center justify-center gap-6">
+              <Link
+                to="/tune"
+                className="w-full sm:w-auto px-10 py-5 rounded-full font-bold transition-all duration-300 bg-white text-slate-950 hover:scale-105 shadow-[0_0_40px_rgba(124,58,237,0.4)] hover:shadow-[0_0_60px_rgba(124,58,237,0.6)] text-lg flex items-center justify-center gap-3"
+              >
+                Enter The Studio <ArrowRight size={20} />
+              </Link>
+              <Link
+                to="/feed"
+                className="w-full sm:w-auto px-10 py-5 rounded-full font-bold transition-all duration-300 bg-slate-900/80 backdrop-blur-md text-white hover:bg-slate-800 border border-slate-700 hover:border-slate-500 text-lg flex items-center justify-center gap-3"
+              >
+                Explore The Wall <Globe2 size={20} />
+              </Link>
+            </motion.div>
           </motion.div>
-
-          <motion.h1 variants={item} className="text-6xl md:text-8xl font-black text-white mb-8 tracking-tighter leading-[1.05]">
-            Rewrite the web.<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 via-accent-400 to-orange-400">
-              Find your voice.
-            </span>
-          </motion.h1>
-
-          <motion.p variants={item} className="text-xl md:text-2xl text-slate-400 max-w-3xl mx-auto mb-12 leading-relaxed font-light">
-            The world's first community-driven AI text engine. Transform boring corporate jargon into Gen Z slang, rewrite angry emails into professional masterpieces, and share your creations instantly.
-          </motion.p>
-
-          <motion.div variants={item} className="flex flex-col sm:flex-row items-center justify-center gap-6">
-            <Link
-              to="/tune"
-              className="w-full sm:w-auto px-10 py-5 rounded-full font-bold transition-all duration-300 bg-white text-slate-950 hover:scale-105 shadow-[0_0_40px_rgba(124,58,237,0.4)] hover:shadow-[0_0_60px_rgba(124,58,237,0.6)] text-lg flex items-center justify-center gap-3"
-            >
-              Enter The Studio <ArrowRight size={20} />
-            </Link>
-            <Link
-              to="/feed"
-              className="w-full sm:w-auto px-10 py-5 rounded-full font-bold transition-all duration-300 bg-slate-900/80 backdrop-blur-md text-white hover:bg-slate-800 border border-slate-700 hover:border-slate-500 text-lg flex items-center justify-center gap-3"
-            >
-              Explore The Wall <Globe2 size={20} />
-            </Link>
-          </motion.div>
-        </motion.div>
+        </div>
       </section>
 
       {/* 2. BEFORE/AFTER SHOWCASE */}
@@ -143,7 +151,6 @@ export default function Landing() {
                 {/* Tuned */}
                 <div className="bg-gradient-to-br from-primary-900/20 to-accent-900/20 rounded-2xl p-6 border border-primary-500/30 flex flex-col pt-10 relative shadow-[inset_0_0_40px_rgba(124,58,237,0.05)]">
                   <div className="absolute top-0 left-0 bg-primary-600 text-white text-xs font-bold px-3 py-1 rounded-br-lg rounded-tl-2xl flex items-center gap-1 shadow-md">
-                    <Sparkles size={12} /> TUNED: {beforeAfterExamples[activeBeforeAfter].vibe.toUpperCase()}
                   </div>
                   <p className="text-white font-medium text-lg md:text-xl leading-relaxed pt-2 drop-shadow-md">
                     &quot;{beforeAfterExamples[activeBeforeAfter].tuned}&quot;
@@ -168,94 +175,88 @@ export default function Landing() {
             <p className="text-lg text-slate-400 max-w-2xl mx-auto">We aren't just another layer on top of ChatGPT. VibeText is a fully crowdsourced, socially-driven text ecosystem.</p>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="flex flex-col gap-16">
 
-            {/* Feature: The Vibe Wall */}
-            <motion.div variants={item} className="bg-slate-900/40 border border-white/5 rounded-3xl p-8 hover:bg-slate-900/60 transition-all group flex flex-col relative overflow-hidden">
-              <div className="absolute -right-10 -top-10 w-40 h-40 bg-pink-500/10 blur-[50px] rounded-full transition-all group-hover:bg-pink-500/20" />
-              <div className="w-14 h-14 bg-pink-500/10 rounded-2xl flex items-center justify-center text-pink-400 mb-6 border border-pink-500/20">
-                <Globe2 size={28} />
+            {/* Feature 1: The Vibe Wall (Split Hero Layout) */}
+            <motion.div variants={item} className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div className="order-2 lg:order-1 relative rounded-3xl overflow-hidden border border-white/5 shadow-2xl bg-black">
+                <img src="/feature-wall.png" alt="Decentralized Vibe Wall" className="w-full h-auto object-cover opacity-90 transition-transform duration-700 hover:scale-105" />
+                <div className="absolute inset-0 bg-gradient-to-tr from-pink-500/10 to-transparent mix-blend-overlay pointer-events-none" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-4">The Global Vibe Wall &amp; Trending</h3>
-              <p className="text-slate-400 leading-relaxed mb-8 flex-1">
-                Join a fully community-driven ecosystem. Publish your tuned snippets to the global Vibe Wall. Get upvotes, shares, and saves from the community to climb the Trending charts and establish your reputation as a master wordsmith.
-              </p>
-              <div className="bg-slate-950/50 p-4 rounded-xl border border-white/5 flex flex-col gap-3">
-                <div className="flex items-center justify-between">
+              <div className="order-1 lg:order-2 flex flex-col items-start px-4 lg:px-8">
+                <div className="w-14 h-14 bg-pink-500/10 rounded-2xl flex items-center justify-center text-pink-400 mb-6 border border-pink-500/20 shadow-[0_0_20px_rgba(236,72,153,0.2)]">
+                  <Globe2 size={28} />
+                </div>
+                <h3 className="text-3xl md:text-5xl font-bold text-white mb-6">The Global Vibe Wall</h3>
+                <p className="text-slate-400 text-lg md:text-xl leading-relaxed mb-8">
+                  Join a fully community-driven ecosystem. Publish your tuned snippets to the global Vibe Wall. Get upvotes, shares, and saves from the community to climb the Trending charts and establish your reputation as a master wordsmith.
+                </p>
+                <Link to="/feed" className="text-pink-400 hover:text-pink-300 font-bold flex items-center gap-2 group text-lg">
+                  Explore Trending Vibes <ArrowRight size={20} className="transition-transform group-hover:translate-x-2" />
+                </Link>
+              </div>
+            </motion.div>
+
+            {/* Group 2: The standard grid for remaining features */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+              {/* Feature: Authenticity Engine */}
+              <motion.div variants={item} className="bg-slate-900/40 border border-white/5 rounded-3xl p-8 hover:bg-slate-900/60 transition-all group flex flex-col relative overflow-hidden">
+                <div className="absolute -right-10 -top-10 w-40 h-40 bg-yellow-500/10 blur-[50px] rounded-full transition-all group-hover:bg-yellow-500/20" />
+                <div className="w-14 h-14 bg-yellow-500/10 rounded-2xl flex items-center justify-center text-yellow-400 mb-6 border border-yellow-500/20">
+                  <Shield size={28} />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-4">Authentic Reviews</h3>
+                <p className="text-slate-400 leading-relaxed mb-8 flex-1">
+                  Every vibe undergoes rigorous community verification. Users rate outputs from 1-5 stars and drop community notes.
+                </p>
+                <div className="bg-slate-950/50 p-4 rounded-xl border border-white/5 flex flex-col gap-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-bold text-white">ag</div>
-                    <span className="text-sm font-bold text-white">agbaby</span>
+                    <div className="flex text-yellow-400"><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /><Star size={14} className="text-slate-700" /></div>
                   </div>
-                  <div className="flex gap-3 text-xs font-bold text-slate-400">
-                    <span className="flex items-center gap-1 text-pink-400"><TrendingUp size={12} /> 2.4k</span>
-                    <span className="flex items-center gap-1"><Share2 size={12} /> 142</span>
+                  <div className="text-xs text-slate-500 border-l-2 border-slate-800 pl-3 italic">
+                    "This slang is accurate." — Note
                   </div>
                 </div>
-                <div className="text-sm text-slate-300 italic">
-                  "No cap this is the best app ever fr fr"
-                </div>
-              </div>
-            </motion.div>
+              </motion.div>
 
-            {/* Feature: Authenticity Engine */}
-            <motion.div variants={item} className="bg-slate-900/40 border border-white/5 rounded-3xl p-8 hover:bg-slate-900/60 transition-all group flex flex-col relative overflow-hidden">
-              <div className="absolute -right-10 -top-10 w-40 h-40 bg-yellow-500/10 blur-[50px] rounded-full transition-all group-hover:bg-yellow-500/20" />
-              <div className="w-14 h-14 bg-yellow-500/10 rounded-2xl flex items-center justify-center text-yellow-400 mb-6 border border-yellow-500/20">
-                <Shield size={28} />
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-4">The Authenticity Engine</h3>
-              <p className="text-slate-400 leading-relaxed mb-8 flex-1">
-                Worried about soulless AI spam? We fixed it. Every vibe published on VibeText undergoes rigorous community verification. Users rate outputs from 1-5 stars and drop "Community Notes" to ensure vibes actually match the culture.
-              </p>
-              <div className="bg-slate-950/50 p-4 rounded-xl border border-white/5 flex flex-col gap-3">
-                <div className="flex items-center gap-2">
-                  <div className="flex text-yellow-400"><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /><Star size={14} className="text-slate-700" /></div>
-                  <span className="text-xs text-slate-400 font-bold">4.2 Authenticity</span>
+              {/* Feature: Marketplace */}
+              <motion.div variants={item} className="bg-slate-900/40 border border-white/5 rounded-3xl p-8 hover:bg-slate-900/60 transition-all group flex flex-col relative overflow-hidden">
+                <div className="absolute -right-10 -top-10 w-40 h-40 bg-accent-500/10 blur-[50px] rounded-full transition-all group-hover:bg-accent-500/20" />
+                <div className="w-14 h-14 bg-accent-500/10 rounded-2xl flex items-center justify-center text-accent-400 mb-6 border border-accent-500/20">
+                  <Users size={28} />
                 </div>
-                <div className="text-xs text-slate-500 border-l-2 border-slate-800 pl-3 italic">
-                  "This slang is actually accurate, didn't sound like a bot wrote it." — Community Note
+                <h3 className="text-2xl font-bold text-white mb-4">Vibe Bounties</h3>
+                <p className="text-slate-400 leading-relaxed mb-8 flex-1">
+                  Can't find the vibe? Request it. Users post bounties for specific tones, upvote the best requests, and top creators fulfill them.
+                </p>
+                <div className="bg-slate-950/50 p-4 rounded-xl border border-white/5 flex flex-col">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-sm font-bold text-slate-200">"Tired SysAdmin"</span>
+                    <span className="text-xs bg-slate-800 text-accent-400 px-2 py-1 rounded-md font-bold">421 Votes</span>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
 
-            {/* Feature: Marketplace */}
-            <motion.div variants={item} className="bg-slate-900/40 border border-white/5 rounded-3xl p-8 hover:bg-slate-900/60 transition-all group flex flex-col relative overflow-hidden">
-              <div className="absolute -right-10 -top-10 w-40 h-40 bg-accent-500/10 blur-[50px] rounded-full transition-all group-hover:bg-accent-500/20" />
-              <div className="w-14 h-14 bg-accent-500/10 rounded-2xl flex items-center justify-center text-accent-400 mb-6 border border-accent-500/20">
-                <Users size={28} />
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-4">The Vibe Marketplace</h3>
-              <p className="text-slate-400 leading-relaxed mb-8 flex-1">
-                Can't find the vibe you need? Request it on the Marketplace. Users post bounties for specific tones, upvote the best requests, and top creators fulfill them to climb the leaderboards.
-              </p>
-              <div className="bg-slate-950/50 p-4 rounded-xl border border-white/5 flex flex-col">
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-sm font-bold text-slate-200">"Tired SysAdmin"</span>
-                  <span className="text-xs bg-slate-800 text-accent-400 px-2 py-1 rounded-md font-bold flex items-center gap-1"><TrendingUp size={10} /> 421 Votes</span>
+              {/* Feature: Weekly Drops */}
+              <motion.div variants={item} className="bg-slate-900/40 border border-white/5 rounded-3xl p-8 hover:bg-slate-900/60 transition-all group flex flex-col relative overflow-hidden">
+                <div className="absolute -right-10 -top-10 w-40 h-40 bg-primary-500/10 blur-[50px] rounded-full transition-all group-hover:bg-primary-500/20" />
+                <div className="w-14 h-14 bg-primary-500/10 rounded-2xl flex items-center justify-center text-primary-400 mb-6 border border-primary-500/20">
+                  <Gift size={28} />
                 </div>
-                <div className="text-xs text-slate-500">Requested 2 days ago. <Link to="/requests" className="text-accent-400 hover:underline">Fulfill this request &rarr;</Link></div>
-              </div>
-            </motion.div>
-
-            {/* Feature: Weekly Drops */}
-            <motion.div variants={item} className="bg-slate-900/40 border border-white/5 rounded-3xl p-8 hover:bg-slate-900/60 transition-all group flex flex-col relative overflow-hidden">
-              <div className="absolute -right-10 -top-10 w-40 h-40 bg-primary-500/10 blur-[50px] rounded-full transition-all group-hover:bg-primary-500/20" />
-              <div className="w-14 h-14 bg-primary-500/10 rounded-2xl flex items-center justify-center text-primary-400 mb-6 border border-primary-500/20">
-                <Gift size={28} />
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-4">Weekly Curated Drops</h3>
-              <p className="text-slate-400 leading-relaxed mb-8 flex-1">
-                Every week, the VibeText admin team curates specialized, limited-time vibes based on internet culture and worldly events. Log in, check the Dashboard, and compete to generate the most highly-rated variation of the Weekly Drop.
-              </p>
-              <div className="bg-gradient-to-r from-primary-900/30 to-slate-900 p-4 rounded-xl border border-primary-500/30 flex items-center gap-3">
-                <Sparkles size={20} className="text-primary-400 flex-shrink-0" />
-                <div>
-                  <div className="text-sm font-bold text-white">This Week: Pop Princess</div>
-                  <div className="text-xs text-primary-200/60">Closes in 3 days</div>
+                <h3 className="text-2xl font-bold text-white mb-4">Weekly Drops</h3>
+                <p className="text-slate-400 leading-relaxed mb-8 flex-1">
+                  Every week, we curate specialized limited-time vibes based on internet culture. Compete to generate the highest rated.
+                </p>
+                <div className="bg-gradient-to-r from-primary-900/30 to-slate-900 p-4 rounded-xl border border-primary-500/30 flex items-center gap-3 mt-auto">
+                  <Wand2 size={20} className="text-primary-400 flex-shrink-0" />
+                  <div>
+                    <div className="text-sm font-bold text-white">This Week: Pop Princess</div>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
 
+            </div>
           </div>
         </motion.div>
       </section>

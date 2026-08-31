@@ -16,6 +16,25 @@ const isAdminEmail = (email) => {
     return adminEmails.includes(email.toLowerCase().trim());
 };
 
+/**
+ * 🍪 HOW HTTPONLY COOKIES WORK (learning note):
+ * The browser stores this cookie automatically and attaches it to every
+ * API request — but JavaScript can NEVER read it (httpOnly: true).
+ * `secure: true` means it only travels over HTTPS.
+ * `sameSite: 'none'` is required because our frontend (Vercel) and
+ * backend (Render) are on different domains (cross-site).
+ */
+const COOKIE_OPTIONS = {
+    httpOnly: true,          
+    secure: true,            
+    sameSite: 'none',        
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+};
+
+const setAuthCookie = (res, token) => {
+    res.cookie('vibetext_token', token, COOKIE_OPTIONS);
+};
+
 export const googleAuth = async (req, res) => {
     try {
         const { credential } = req.body;
@@ -51,8 +70,8 @@ export const googleAuth = async (req, res) => {
             { expiresIn: '7d' }
         );
 
+        setAuthCookie(res, token);
         res.status(200).json({
-            token,
             _id: user._id,
             name: user.name,
             email: user.email,
@@ -62,6 +81,56 @@ export const googleAuth = async (req, res) => {
     } catch (error) {
         console.error('Google auth error:', error);
         res.status(500).json({ error: 'Authentication failed' });
+    }
+};
+
+export const googleTokenAuth = async (req, res) => {
+    try {
+        const { accessToken, userInfo } = req.body;
+        if (!accessToken || !userInfo) {
+            return res.status(400).json({ error: 'Access token and user info are required' });
+        }
+
+        // Verify the token is valid by calling Google's userinfo endpoint
+        const googleRes = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        });
+
+        const { sub: googleId, name, email, picture } = googleRes.data;
+
+        if (!email) {
+            return res.status(400).json({ error: 'Google account must have a verified email' });
+        }
+
+        let user = await User.findOne({ $or: [{ googleId }, { email }] });
+        if (!user) {
+            const role = isAdminEmail(email) ? 'admin' : 'user';
+            user = await User.create({ googleId, name, email, picture, role });
+        } else {
+            user.googleId = googleId;
+            user.name = name;
+            user.picture = picture;
+            if (isAdminEmail(email)) user.role = 'admin';
+            await user.save();
+        }
+
+        const token = jwt.sign(
+            { userId: user._id, email: user.email, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        setAuthCookie(res, token);
+        res.status(200).json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            picture: user.picture,
+            role: user.role,
+        });
+    } catch (error) {
+        console.error('Google token auth error:', error);
+        res.status(500).json({ error: 'Google authentication failed' });
     }
 };
 
@@ -78,7 +147,10 @@ export const verifyOAuth = async (req, res) => {
         params.append('client_secret', String(process.env.DISCORD_CLIENT_SECRET).trim());
         params.append('grant_type', 'authorization_code');
         params.append('code', code);
-        params.append('redirect_uri', `${(process.env.CLIENT_URL || 'http://localhost:5173').trim()}/oauth/callback`);
+        // IMPORTANT: redirect_uri must EXACTLY match what's registered in Discord Developer Portal
+        // AND what the frontend sent during the initial authorization redirect.
+        const clientOrigin = 'https://vibes-text.vercel.app';
+        params.append('redirect_uri', `${clientOrigin}/oauth/callback`);
 
         console.log('Debug Discord Payload (URLSearchParams):', params.toString());
 
@@ -122,8 +194,8 @@ export const verifyOAuth = async (req, res) => {
             { expiresIn: '7d' }
         );
 
+        setAuthCookie(res, token);
         res.status(200).json({
-            token,
             _id: user._id,
             name: user.name,
             email: user.email,
@@ -166,7 +238,10 @@ export const sendOtp = async (req, res) => {
                 port: smtpPort,
                 secure: smtpPort === 465,
                 auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-                tls: { rejectUnauthorized: false }
+                tls: { rejectUnauthorized: false },
+                connectionTimeout: 10000,
+                greetingTimeout: 5000,
+                socketTimeout: 10000
             });
 
             await transporter.sendMail({
@@ -188,7 +263,10 @@ export const sendOtp = async (req, res) => {
         res.status(200).json({ message: 'OTP sent successfully!' });
     } catch (error) {
         console.error('Send OTP Error:', error);
-        res.status(500).json({ error: 'Failed to send verification email' });
+        const errContext = (error.message || '').toLowerCase().includes('timeout')
+            ? 'SMTP Blocked: Render Free Tier firewall prevents outgoing emails. Run locally or upgrade Render.'
+            : 'SMTP Error: Failed to send verification email. Check App Passwords.';
+        res.status(500).json({ error: errContext });
     }
 };
 
@@ -227,8 +305,8 @@ export const verifyOtp = async (req, res) => {
             { expiresIn: '7d' }
         );
 
+        setAuthCookie(res, token);
         res.status(200).json({
-            token,
             _id: user._id,
             name: user.name,
             email: user.email,
@@ -273,8 +351,9 @@ export const register = async (req, res) => {
             { expiresIn: '7d' }
         );
 
+        setAuthCookie(res, token);
         res.status(201).json({
-            token,
+            _id: user._id,
             name: user.name,
             email: user.email,
             picture: user.picture,
@@ -319,8 +398,9 @@ export const login = async (req, res) => {
             { expiresIn: '7d' }
         );
 
+        setAuthCookie(res, token);
         res.status(200).json({
-            token,
+            _id: user._id,
             name: user.name,
             email: user.email,
             picture: user.picture,
@@ -330,4 +410,14 @@ export const login = async (req, res) => {
         console.error('Login error:', error);
         res.status(500).json({ error: 'Failed to log in' });
     }
+};
+
+/**
+ *  LOGOUT: Clear the cookie server-side.
+ * Even if a JS bug somehow kept a reference, clearing it here
+ * on the server means the token is permanently invalidated.
+ */
+export const logout = (req, res) => {
+    res.clearCookie('vibetext_token', { ...COOKIE_OPTIONS });
+    res.status(200).json({ message: 'Logged out successfully' });
 };

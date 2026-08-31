@@ -48,7 +48,8 @@ export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }
     api.get('notifications').then(res => setNotifications(res.data)).catch(() => { });
 
     // 2. Join user-specific socket room — MUST happen inside 'connect' event
-    const socketUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+    let socketUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+    socketUrl = socketUrl.replace(/^http:\/\/(.*onrender\.com)/i, 'https://$1');
     const socket = io(socketUrl, {
       transports: ['websocket', 'polling']
     });
@@ -135,8 +136,10 @@ export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }
         {!isLanding ? (
           <>
             {/* Search bar — centered, grows to fill available space */}
+            <div className="sm:flex hidden"> 
             <form
               onSubmit={handleSearch}
+              
               style={{
                 flex: 1,
                 maxWidth: 420,
@@ -150,7 +153,6 @@ export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }
                 height: 36,
                 minWidth: 0,
               }}
-              className="sm:flex hidden"
             >
               <Search size={14} color="#475569" style={{ flexShrink: 0 }} />
               <input
@@ -184,6 +186,7 @@ export function Navbar({ onOpenSidebar, showSidebar = false, isLanding = false }
                 <Search size={12} />
               </button>
             </form>
+            </div>
 
 
 

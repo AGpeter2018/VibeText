@@ -21,7 +21,7 @@ export default function OAuthCallback() {
     const verifyCode = async () => {
       try {
         const res = await api.post('auth/oauth/verify', { code, provider });
-        login(res.data.token, res.data);
+        login(res.data);
         navigate('/dashboard');
       } catch (err: any) {
         console.error('OAuth verification failed:', err);

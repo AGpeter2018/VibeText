@@ -235,13 +235,19 @@ export const ratePost = async (req, res) => {
 
         // --- BOT CHAIN ORACLE: Reward validators who include a community note ---
         let txHash = null;
-        // Removed `isFirstTimeRating` constraint to allow unlimited testing for the Hackathon Demo
-        if (score === 5 && note && note.trim().length > 0) {
-            // Fetch the rater's wallet address from the DB (link wallet step unlocks this)
+
+        // Anti-Treasury Drain Protection:
+        // 1. You cannot validate your own post
+        // 2. You only get paid the FIRST time you rate this post (existingRatingIndex < 0)
+        const isAuthor = post.authorId.toString() === req.userId.toString();
+
+        if (!isAuthor && existingRatingIndex < 0 && score === 5 && note && note.trim().length > 0) {
+            // Fetch the rater's wallet address from the DB
             const rater = await User.findById(req.userId).select('walletAddress').lean();
             if (rater?.walletAddress) {
-                // Use a combination of user ID and current timestamp as verification ID to bypass contract AlreadyProcessed errors on subsequent tests
-                const verificationId = `${req.userId}_${Date.now()}`;
+                // Deterministic verification ID locks the payout to strictly 1 per (User + Post) combo
+                // The Smart Contract `processedVerifications` mapping will natively reject duplicates
+                const verificationId = `${req.userId}_${post._id}`;
                 txHash = await rewardOnChain(rater.walletAddress, verificationId);
             }
         }

@@ -1,5 +1,6 @@
 import express from 'express'
 import cors from 'cors'
+import cookieParser from 'cookie-parser'
 import { generateContent, proxyImage } from './controller/ai-controller.js'
 import authRoutes from './routes/auth-route.js'
 import feedRoutes from './routes/feed-route.js'
@@ -17,8 +18,15 @@ const allowedOrigins = [
     'http://localhost:5174',
     'http://127.0.0.1:5173',
     'http://127.0.0.1:5174',
+    'https://vibes-text.vercel.app',
     process.env.CLIENT_URL
 ].filter(Boolean);
+
+app.use((req, res, next) => {
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+    res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
+    next();
+});
 
 app.use(cors({
     origin: (origin, callback) => {
@@ -39,6 +47,7 @@ app.use(cors({
 }));
 
 app.use(express.json())
+app.use(cookieParser())
 
 app.use(express.urlencoded({ extended: true }))
 

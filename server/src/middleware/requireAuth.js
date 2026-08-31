@@ -2,16 +2,22 @@ import jwt from 'jsonwebtoken';
 
 export const requireAuth = (req, res, next) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'No token provided' });
+        /**
+         *  We now read the token from the HttpOnly cookie.
+         * The browser automatically attaches it to every request
+         * (because we set `withCredentials: true` on the Axios client).
+         * JavaScript on the page can NEVER read this cookie — that's the security win.
+         */
+        const token = req.cookies?.vibetext_token;
+        if (!token) {
+            return res.status(401).json({ error: 'No session found. Please log in.' });
         }
 
-        const token = authHeader.split(' ')[1];
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.userId = decoded.userId;
+        req.userRole = decoded.role;
         next();
     } catch (error) {
-        return res.status(401).json({ error: 'Invalid or expired token' });
+        return res.status(401).json({ error: 'Session expired. Please log in again.' });
     }
 };

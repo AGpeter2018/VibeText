@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sparkles, Settings2, SlidersHorizontal, Type } from 'lucide-react';
+import { Wand2, Settings2, SlidersHorizontal, Type } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../lib/api';
 import { ResultCard } from '../components/ResultCard';
@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 export default function Tune() {
   const [searchParams] = useSearchParams();
   const [originalText, setOriginalText] = useState('');
+  const [submittedText, setSubmittedText] = useState('');
   const [vibe, setVibe] = useState(searchParams.get('vibe') || 'Gen Z');
   const [intensity, setIntensity] = useState(5);
   const [isLoading, setIsLoading] = useState(false);
@@ -16,8 +17,14 @@ export default function Tune() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const VIBES = [
-    'Gen Z', 'Corporate', 'Shakespearean', 'Pirate', 'Cyberpunk',
-    'passive-aggressive', 'Overly Enthusiastic', 'Surfer', 'Goth'
+    // Nigeria Pack
+    'Lagos Street', 'Naija Gen Z', 'Soft Life', 'Afrobeats', 'Yoruba Street', 'Igbo Hustle', 'Hausa Respectful', 'Campus Vibes', 'Lagos Corporate', 'Naija Parent',
+    // Global Culture Pack
+    'UK Drill', 'South London Roadman', 'American Gen Z', 'New York Direct', 'Southern American', 'Jamaican Patois', 'Mumbai Street', 'Tokyo Casual',
+    // Professional Pack
+    'Corporate Executive', 'Diplomatic', 'Tech Founder', 'Startup Pitch', 'Customer Support', 'Church Mode',
+    // Entertainment & Identity
+    'Main Character', 'Savage', 'Romantic', 'Motivational', 'Anime Protagonist', 'Shakespeare'
   ];
 
   const handleSubmit = async () => {
@@ -25,11 +32,18 @@ export default function Tune() {
     setIsLoading(true);
     try {
       const res = await api.post('tune', { text: originalText, dialect: vibe, intensity });
+      setSubmittedText(originalText);
+      setOriginalText('');
       setTunedText(res.data.content);
       setImageUrl(res.data.imageUrl);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error('Failed to tune text. Please try again.');
+      const errorMsg = err?.response?.data?.error || err.message || '';
+      if (errorMsg.includes('429') || errorMsg.includes('Quota') || errorMsg.includes('quota')) {
+        toast.error('API rate limit reached (Free Tier). Please wait 45 seconds!');
+      } else {
+        toast.error('Failed to tune text. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -39,7 +53,7 @@ export default function Tune() {
     <div className="flex flex-col items-center max-w-4xl mx-auto w-full">
       <div className="text-center mb-10 w-full">
         <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-4 tracking-tight flex justify-center items-center gap-3">
-          <Sparkles className="text-primary-400" size={36} /> The Studio
+          <Wand2 className="text-primary-400" size={36} /> The Studio
         </h1>
         <p className="text-lg text-slate-400">Craft your message. Dial in the perfect vibe.</p>
       </div>
@@ -72,27 +86,22 @@ export default function Tune() {
             <div className="flex flex-col gap-6">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-3">Target Vibe</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {VIBES.slice(0, 6).map((v) => (
+                <div
+                  className="flex flex-wrap gap-2 max-h-[140px] overflow-y-auto pr-2"
+                  style={{ scrollbarWidth: 'thin', scrollbarColor: '#334155 transparent' }}
+                >
+                  {VIBES.map((v) => (
                     <button
                       key={v}
                       onClick={() => setVibe(v)}
-                      className={`py-2 px-3 rounded-xl text-sm font-medium transition-all border ${vibe === v
+                      className={`cursor-pointer whitespace-nowrap py-1.5 px-3 rounded-lg text-xs font-semibold transition-all border ${vibe === v
                         ? 'bg-primary-600/20 border-primary-500 text-white shadow-inner'
-                        : 'bg-slate-900/50 border-white/5 text-slate-400 hover:border-white/20'
+                        : 'bg-slate-900/50 border-white/5 text-slate-400 hover:border-white/20 hover:bg-slate-800'
                         }`}
                     >
                       {v}
                     </button>
                   ))}
-                  <select
-                    className="col-span-2 sm:col-span-3 bg-slate-900/50 border border-white/5 text-slate-300 rounded-xl py-2 px-3 outline-none focus:border-primary-500"
-                    value={VIBES.includes(vibe) ? (VIBES.indexOf(vibe) < 6 ? '' : vibe) : vibe}
-                    onChange={(e) => setVibe(e.target.value)}
-                  >
-                    <option value="" disabled>More Vibes...</option>
-                    {VIBES.slice(6).map(v => <option key={v} value={v}>{v}</option>)}
-                  </select>
                 </div>
               </div>
 
@@ -136,7 +145,7 @@ export default function Tune() {
               </div>
             ) : (
               <>
-                <Sparkles size={24} /> Vibe It!
+                <Wand2 size={24} /> Vibe It!
               </>
             )}
           </motion.button>
@@ -147,7 +156,7 @@ export default function Tune() {
           {!tunedText ? (
             <div className="h-full min-h-[300px] glassmorphism rounded-3xl border-dashed border-2 border-slate-700/50 flex flex-col items-center justify-center text-center p-8">
               <div className="w-16 h-16 bg-slate-800/50 rounded-2xl flex items-center justify-center text-slate-600 mb-4">
-                <Sparkles size={32} />
+                <Wand2 size={32} />
               </div>
               <h3 className="text-xl font-bold text-slate-400 mb-2">Awaiting Input</h3>
               <p className="text-slate-500 text-sm">Your tuned text will magically appear here.</p>
@@ -159,7 +168,7 @@ export default function Tune() {
               className="h-full"
             >
               <ResultCard
-                originalText={originalText}
+                originalText={submittedText}
                 result={tunedText}
                 vibe={vibe}
                 intensity={intensity}
